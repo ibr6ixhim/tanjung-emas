@@ -185,8 +185,22 @@ export function buildWorld(scene, seed) {
   const heartGeo = new THREE.ConeGeometry(1.1, 2.2, 6);
   const palmData = [];
   for (let z = -480; z <= 480; z += 40) {
-    for (const x of [CITY.beachX + 2, CITY.beachX + 34]) {
-      palmData.push({ x: x + rng.range(-2, 2), z: z + rng.range(-4, 4) });
+    // Palms flank the boulevard (x=-282, spans -292..-272). The old west
+    // column (beachX+2 = -298) stood INSIDE the north-south street at
+    // x=-300 (spans -308..-292), and any palm whose z fell within an
+    // east-west street corridor (streets every 100 m, 16 m wide) stood in
+    // the middle of that street — one was visible in the chase shot.
+    // West column moves onto the sand (x=-312: clear of the x=-300 street,
+    // east of the shoreline at -340); east column stays at -266. Palms
+    // whose z lands in a cross-street corridor shift +20 m along the
+    // boulevard, clear of the 16 m road (corridors are 100 m apart, so
+    // +20 can never land in another one).
+    for (const x of [CITY.beachX - 12, CITY.beachX + 34]) {
+      const px = x + rng.range(-2, 2);
+      let pz = z + rng.range(-4, 4);
+      const nearestStreet = Math.round(pz / CITY.block) * CITY.block;
+      if (Math.abs(pz - nearestStreet) < 10) pz += 20;
+      palmData.push({ x: px, z: pz });
     }
   }
   const FRONDS = 6;
