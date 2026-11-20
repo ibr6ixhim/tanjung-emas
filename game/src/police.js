@@ -7,26 +7,57 @@ import { collideCircle } from './world.js';
 
 function makePoliceCarMesh() {
   const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.65, 4.4), new THREE.MeshLambertMaterial({ color: 0x1a2a4a }));
-  body.position.y = 0.55; g.add(body);
-  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.6, 2.0), new THREE.MeshLambertMaterial({ color: 0xd8e8f8 }));
-  cabin.position.set(0, 1.15, -0.2); g.add(cabin);
-  const stripe = new THREE.Mesh(new THREE.BoxGeometry(2.05, 0.2, 4.0), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-  stripe.position.y = 0.75; g.add(stripe);
-  const bar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.18, 0.5), new THREE.MeshBasicMaterial({ color: 0xff2a2a }));
-  bar.position.set(0, 1.55, -0.2); bar.name = 'lightbar'; g.add(bar);
-  const wheelGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.3, 10);
-  const wheelMat = new THREE.MeshLambertMaterial({ color: 0x141414 });
+  const bodyMat = new THREE.MeshLambertMaterial({ color: 0x1a2a4a });
+  const darkMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+  const glassMat = new THREE.MeshLambertMaterial({ color: 0xd8e8f8, transparent: true, opacity: 0.7 });
+
+  // Chassis
+  const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.85, 0.28, 4.2), darkMat);
+  chassis.position.y = 0.35; g.add(chassis);
+
+  // Main body
+  const mainBody = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.55, 3.6), bodyMat);
+  mainBody.position.set(0, 0.62, 0.1); g.add(mainBody);
+
+  // Hood
+  const hood = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.22, 1.4), bodyMat);
+  hood.position.set(0, 0.72, 1.55);
+  hood.rotation.x = -0.12; g.add(hood);
+
+  // Trunk
+  const trunk = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.28, 0.9), bodyMat);
+  trunk.position.set(0, 0.75, -1.55); g.add(trunk);
+
+  // Cabin
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.45, 0.48, 1.8), glassMat);
+  cabin.position.set(0, 1.05, -0.15); g.add(cabin);
+
+  // Roof
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.06, 1.5), bodyMat);
+  roof.position.set(0, 1.32, -0.15); g.add(roof);
+
+  // White stripe
+  const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.12, 3.8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+  stripe.position.set(0, 0.78, 0.05); g.add(stripe);
+
+  // Light bar
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.14, 0.4), new THREE.MeshBasicMaterial({ color: 0xff2a2a }));
+  bar.position.set(0, 1.48, -0.15); bar.name = 'lightbar'; g.add(bar);
+
+  // Wheels
+  const wheelGeo = new THREE.CylinderGeometry(0.36, 0.36, 0.28, 12);
+  const wheelMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
   const wheels = [];
-  for (const [x, z] of [[-0.95, 1.4], [0.95, 1.4], [-0.95, -1.4], [0.95, -1.4]]) {
+  for (const [x, z] of [[-0.92, 1.45], [0.92, 1.45], [-0.92, -1.35], [0.92, -1.35]]) {
     const pivot = new THREE.Group();
-    pivot.position.set(x, 0.38, z);
+    pivot.position.set(x, 0.36, z);
     const w = new THREE.Mesh(wheelGeo, wheelMat);
     w.rotation.z = Math.PI / 2; w.castShadow = true;
     pivot.add(w);
     g.add(pivot);
     wheels.push(pivot);
   }
+
   g.userData.wheels = wheels;
   return g;
 }
