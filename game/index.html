@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Tanjung Emas — Open-World Crime</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1024; font-family: Arial, Helvetica, sans-serif; color: #fff; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  .hidden { display: none !important; }
+  #fatal { position: fixed; top: 10px; left: 10px; z-index: 99; background: #a00; padding: 10px 14px; border-radius: 6px; font-size: 14px; }
+
+  /* ---------- HUD ---------- */
+  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+  .panel { position: absolute; background: rgba(8, 6, 16, 0.72); border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 8px; padding: 10px 12px; backdrop-filter: blur(2px); }
+  #mission-panel { top: 14px; left: 14px; width: 330px; border-left: 4px solid #ffd34f; }
+  #mission-title { font-size: 15px; font-weight: bold; color: #ffd34f; letter-spacing: 0.5px; }
+  #mission-objective { font-size: 13px; margin-top: 4px; line-height: 1.35; }
+  #mission-stage { font-size: 12px; color: #9ad8ff; margin-top: 5px; }
+  #mission-next { font-size: 11px; color: #aaa; margin-top: 2px; }
+  #objective-dist { display: inline-block; margin-top: 5px; font-size: 13px; font-weight: bold; color: #ffd34f; }
+  #stats-panel { top: 14px; right: 14px; text-align: right; min-width: 210px; }
+  #money { font-size: 26px; font-weight: bold; color: #7dff8a; }
+  #stars { font-size: 22px; letter-spacing: 3px; color: #ffd34f; }
+  #stars.wanted-hot { color: #ff3a3a; text-shadow: 0 0 8px #ff3a3a; }
+  #clock { font-size: 14px; color: #ddd; }
+  #police-status { font-size: 12px; font-weight: bold; color: #ff9a9a; }
+  #vitals { position: absolute; left: 14px; bottom: 218px; width: 220px; }
+  .bar-row { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 11px; font-weight: bold; }
+  .bar { flex: 1; height: 10px; background: rgba(255,255,255,0.15); border-radius: 5px; overflow: hidden; }
+  .bar > div { height: 100%; }
+  #health-fill { background: #4ade80; width: 100%; }
+  #armour-fill { background: #60a5fa; width: 0%; }
+  #district { font-size: 14px; font-weight: bold; margin-top: 6px; }
+  #street { font-size: 12px; color: #bbb; }
+  #respect { font-size: 11px; color: #ffd34f; margin-top: 3px; }
+  #minimap-wrap { position: absolute; left: 14px; bottom: 14px; }
+  #minimap { border-radius: 50%; border: 3px solid rgba(255,255,255,0.4); background: #12101c; }
+  #speedo { position: absolute; right: 14px; bottom: 14px; text-align: right; min-width: 190px; }
+  #speed { font-size: 44px; font-weight: bold; line-height: 1; }
+  #speed-unit { font-size: 13px; color: #bbb; }
+  #car-name { font-size: 14px; font-weight: bold; color: #ffd34f; }
+  #car-condition { font-size: 11px; color: #bbb; }
+  #nitro-bar { height: 8px; background: rgba(255,255,255,0.15); border-radius: 4px; overflow: hidden; margin-top: 5px; }
+  #nitro-fill { height: 100%; background: #ff9a3c; width: 100%; }
+  #weapons { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; }
+  .weapon-slot { background: rgba(8,6,16,0.72); border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; padding: 5px 8px; font-size: 11px; font-weight: bold; color: #ccc; }
+  .weapon-slot.active { border-color: #ffd34f; color: #ffd34f; }
+  .weapon-slot.locked { opacity: 0.45; }
+  #dispatch-box { position: absolute; left: 14px; top: 240px; width: 250px; }
+  #dispatch-box h3 { font-size: 11px; color: #ff9a9a; letter-spacing: 1px; margin-bottom: 5px; }
+  .dispatch-row { display: flex; gap: 8px; font-size: 12px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .dispatch-row .unit { font-weight: bold; color: #fff; }
+  .dispatch-row .dist { color: #9ad8ff; margin-left: auto; }
+  .dispatch-row .tactic { font-weight: bold; }
+  .tactic.pursuit { color: #ffd34f; } .tactic.ramming { color: #ff6b6b; } .tactic.roadblock { color: #ff9a3c; }
+  .tactic.spotlight { color: #fff2b0; } .tactic.searching { color: #9ad8ff; }
+  #crew { position: absolute; right: 14px; top: 190px; display: flex; flex-direction: column; gap: 5px; }
+  .crew-chip { background: rgba(8,6,16,0.72); border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; padding: 5px 9px; font-size: 11px; font-weight: bold; color: #ccc; text-align: right; }
+  .crew-chip.active { border-color: #7dff8a; color: #7dff8a; }
+  #dialog { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); width: 520px; background: rgba(8,6,16,0.85); border: 1px solid rgba(255,211,79,0.5); border-radius: 8px; padding: 10px 14px; }
+  #dialog-name { font-size: 12px; font-weight: bold; color: #ffd34f; }
+  #dialog-line { font-size: 14px; margin-top: 3px; line-height: 1.4; }
+  #radio-ticker { position: absolute; top: 64px; left: 50%; transform: translateX(-50%); font-size: 12px; color: #ffd9ec; background: rgba(8,6,16,0.6); padding: 5px 12px; border-radius: 12px; }
+  #prompt { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%); font-size: 16px; font-weight: bold; background: rgba(8,6,16,0.8); border: 1px solid #ffd34f; color: #ffd34f; padding: 8px 16px; border-radius: 6px; }
+  #message { position: absolute; left: 50%; top: 110px; transform: translateX(-50%); font-size: 18px; font-weight: bold; color: #7dff8a; text-shadow: 0 2px 6px #000; background: rgba(8,6,16,0.7); padding: 8px 18px; border-radius: 8px; }
+  #crosshair { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; transform: translate(-50%, -50%); pointer-events: none; }
+  #crosshair::before, #crosshair::after { content: ''; position: absolute; background: #fff; }
+  #crosshair::before { left: 10px; top: 0; width: 2px; height: 22px; }
+  #crosshair::after { top: 10px; left: 0; height: 2px; width: 22px; }
+
+  /* ---------- Overlays ---------- */
+  .overlay { position: fixed; inset: 0; z-index: 20; background: rgba(5, 3, 12, 0.82); display: flex; align-items: center; justify-content: center; }
+  .overlay-box { background: #14111d; border: 1px solid rgba(255,211,79,0.4); border-radius: 12px; padding: 20px 24px; max-width: 860px; max-height: 94vh; overflow-y: auto; }
+  .overlay-box h1 { font-size: 40px; color: #ffd34f; letter-spacing: 2px; }
+  .overlay-box h2 { font-size: 20px; color: #ffd34f; margin-bottom: 12px; }
+  .overlay-box p { font-size: 14px; color: #ccc; line-height: 1.5; margin-top: 8px; }
+  .overlay-box button { pointer-events: auto; cursor: pointer; background: #ffd34f; color: #1a1024; border: none; border-radius: 6px; padding: 10px 20px; font-size: 15px; font-weight: bold; margin: 8px 6px 0 0; }
+  .overlay-box button:disabled { opacity: 0.4; cursor: default; }
+  .overlay-box button.secondary { background: #2a2438; color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+  #title .overlay-box { text-align: center; width: 640px; }
+  #title .subtitle { color: #ff9a6b; font-size: 15px; letter-spacing: 3px; margin-top: 4px; }
+  #title .footer { font-size: 12px; color: #9ad8ff; margin-top: 16px; }
+  #title .controls { font-size: 12px; color: #999; margin-top: 10px; line-height: 1.7; }
+  #pause .overlay-box { width: 780px; display: flex; gap: 20px; }
+  #pause .map-col { flex: 0 0 480px; }
+  #pause .side-col { flex: 1; }
+  #fullmap { background: #14111d; border-radius: 8px; }
+  #mission-list { list-style: none; margin-top: 6px; font-size: 13px; line-height: 1.8; }
+  .mission-done { color: #7dff8a; } .mission-next { color: #ffd34f; font-weight: bold; } .mission-locked { color: #777; }
+  #career-stats { font-size: 12px; color: #ccc; line-height: 1.7; margin-top: 8px; }
+  .save-slot { background: #1e1930; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 7px 10px; font-size: 12px; margin-top: 6px; }
+  .garage-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 13px; }
+  .g-name { font-weight: bold; color: #ffd34f; width: 130px; }
+  .g-desc { flex: 1; color: #bbb; }
+  .garage-row button { margin: 0; padding: 6px 14px; font-size: 13px; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="fatal" class="hidden"></div>
+
+<!-- ============ HUD ============ -->
+<div id="hud" class="hidden">
+  <div id="mission-panel" class="panel">
+    <div id="mission-title">MISSION 1/8</div>
+    <div id="mission-objective"></div>
+    <div id="mission-stage"></div>
+    <div id="mission-next"></div>
+    <span id="objective-dist"></span>
+  </div>
+  <div id="stats-panel" class="panel">
+    <div id="money">$350</div>
+    <div id="stars">☆☆☆☆☆</div>
+    <div id="clock">FRI 17:30</div>
+    <div id="police-status">CLEAN</div>
+  </div>
+  <div id="vitals" class="panel">
+    <div class="bar-row"><span>HP</span><div class="bar"><div id="health-fill"></div></div></div>
+    <div class="bar-row"><span>ARM</span><div class="bar"><div id="armour-fill"></div></div></div>
+    <div id="district">PANTAI SENJA</div>
+    <div id="street">Jalan Senja Timur</div>
+    <div id="respect">RESPECT 0 • NOBODY</div>
+  </div>
+  <div id="minimap-wrap"><canvas id="minimap" width="190" height="190"></canvas></div>
+  <div id="speedo" class="panel">
+    <span id="speed">0</span> <span id="speed-unit">km/h</span>
+    <div id="car-name">JALAN KAKI</div>
+    <div id="car-condition">CONDITION 100% • —</div>
+    <div id="nitro-bar"><div id="nitro-fill"></div></div>
+  </div>
+  <div id="weapons">
+    <div class="weapon-slot">1 FISTS ∞</div><div class="weapon-slot">2 PISTOL 120</div><div class="weapon-slot">3 SMG 240</div><div class="weapon-slot locked">4 SHOTGUN LOCKED</div><div class="weapon-slot locked">5 ASSAULT LOCKED</div><div class="weapon-slot locked">6 RPG LOCKED</div>
+  </div>
+  <div id="dispatch-box" class="panel hidden">
+    <h3>POLICE DISPATCH</h3>
+    <div id="dispatch"></div>
+  </div>
+  <div id="crew">
+    <div class="crew-chip">[Z] Sinta — NITRO PANJANG</div>
+    <div class="crew-chip">[X] Bimo — DISKON GARAGE</div>
+    <div class="crew-chip">[C] Nadia — HAPUS BINTANG</div>
+  </div>
+  <div id="dialog" class="hidden"><div id="dialog-name"></div><div id="dialog-line"></div></div>
+  <div id="radio-ticker">♪ SENJA FM 98.1</div>
+  <div id="prompt" class="hidden">[F] STEAL CAR</div>
+  <div id="message" class="hidden"></div>
+  <div id="crosshair"></div>
+</div>
+
+<!-- ============ TITLE ============ -->
+<div id="title" class="overlay">
+  <div class="overlay-box">
+    <h1>TANJUNG EMAS</h1>
+    <div class="subtitle">OPEN-WORLD CRIME • KOTA PULAU SAAT SENJA</div>
+    <p>Raka pulang ke Tanjung Emas — kota pulau tempat matahari tidak pernah benar-benar tenggelam. Curi mobil, kabur dari polisi, bangun kru, dan rebut kota ini, satu misi demi satu misi.</p>
+    <div>
+      <button id="continue-btn">Continue</button>
+      <button id="newgame-btn">New Game</button>
+      <button id="settings-btn" class="secondary">Radio: SENJA FM 98.1</button>
+    </div>
+    <div class="footer">8 missions • 5-star police • crew • garage • boats • radio • saves</div>
+    <div class="controls">WASD jalan / nyetir • Mouse drag kamera • Klik tembak • F curi mobil / naik perahu • E garage • M peta • 1–6 senjata • R ganti radio • Z/X/C perk kru • Shift nitro / lari</div>
+  </div>
+</div>
+
+<!-- ============ PAUSE MAP ============ -->
+<div id="pause" class="overlay hidden">
+  <div class="overlay-box">
+    <div class="map-col">
+      <h2>PETA TANJUNG EMAS</h2>
+      <canvas id="fullmap" width="480" height="480"></canvas>
+    </div>
+    <div class="side-col">
+      <h2>MISI CERITA</h2>
+      <ul id="mission-list"></ul>
+      <h2 style="margin-top:14px">STATISTIK KARIR</h2>
+      <div id="career-stats"></div>
+      <h2 style="margin-top:14px">SAVE</h2>
+      <div id="save-slots"></div>
+      <div style="margin-top:16px">
+        <button id="resume-btn">Lanjutkan</button>
+        <button id="save-btn" class="secondary">Simpan</button>
+        <button id="quit-btn" class="secondary">Title Screen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ GARAGE ============ -->
+<div id="garage" class="overlay hidden">
+  <div class="overlay-box" style="width:620px">
+    <h2>BENGKEL BIMO — GARAGE</h2>
+    <div id="garage-items"></div>
+    <button id="garage-close" class="secondary">Tutup (Esc)</button>
+  </div>
+</div>
+
+<script src="./vendor/three.min.js"></script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
