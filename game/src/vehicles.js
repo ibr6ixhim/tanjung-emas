@@ -134,10 +134,19 @@ export class Traffic {
     this.rng = makeRng(seed);
     this.cars = [];
     const group = new THREE.Group(); group.name = 'traffic'; scene.add(group);
-    for (let i = 0; i < 26; i++) {
+    for (let i = 0; i < 40; i++) {
       const model = this.rng.pick(CAR_MODELS);
       const mesh = makeCarMesh(model, this.rng);
       group.add(mesh);
+      // one in five cars cruises the beach boulevard (x=-282), the sunset
+      // strip — the grid lanes never touch it, so it used to sit empty
+      if (this.rng.chance(0.2)) {
+        this.cars.push({
+          mesh, axis: 'z', speed: this.rng.range(8, 14) * (this.rng.chance(0.5) ? 1 : -1),
+          x: -282, z: this.rng.range(-500, 500),
+        });
+        continue;
+      }
       const axis = this.rng.chance(0.5) ? 'x' : 'z';
       const lane = this.rng.int(-5, 5) * 100 + (this.rng.chance(0.5) ? 4 : -4);
       const along = this.rng.range(-500, 500);
@@ -145,6 +154,20 @@ export class Traffic {
         mesh, axis, speed: this.rng.range(8, 15) * (this.rng.chance(0.5) ? 1 : -1),
         x: axis === 'x' ? along : lane, z: axis === 'x' ? lane : along,
       });
+    }
+  }
+
+  // Staging helper for ?shot= screenshots: place the first N real traffic
+  // cars (the same live drivers) onto the given spots [{x, z, axis, speed}].
+  // Rotation mirrors update(): axis 'x' cars face east/west by speed sign,
+  // axis 'z' cars face south/north.
+  placeCars(spots) {
+    for (let i = 0; i < spots.length && i < this.cars.length; i++) {
+      const c = this.cars[i];
+      const s = spots[i];
+      c.x = s.x; c.z = s.z; c.axis = s.axis; c.speed = s.speed;
+      c.mesh.position.set(s.x, 0, s.z);
+      c.mesh.rotation.y = s.axis === 'x' ? (s.speed > 0 ? Math.PI / 2 : -Math.PI / 2) : (s.speed > 0 ? 0 : Math.PI);
     }
   }
   update(dt, playerPos) {

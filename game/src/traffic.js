@@ -37,17 +37,53 @@ export class Pedestrians {
     this.rng = makeRng(seed);
     this.peds = [];
     const group = new THREE.Group(); group.name = 'pedestrians'; scene.add(group);
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 80; i++) {
       const mesh = makePedMesh(this.rng);
       group.add(mesh);
-      const x = this.rng.range(-480, 520);
-      const z = this.rng.range(-480, 520);
+      // spawn on a sidewalk, never inside a building block: pick a street
+      // and stand just off its edge. The beach boulevard gets extra foot
+      // traffic — it is the sunset strip the player spends time on.
+      let x, z;
+      if (this.rng.chance(0.25)) {
+        x = this.rng.chance(0.5) ? -292 : -272; // boulevard sidewalks
+        z = this.rng.range(-480, 520);
+      } else if (this.rng.chance(0.5)) {
+        const rz = this.rng.int(-5, 5) * 100; // east-west street
+        x = this.rng.range(-280, 520);
+        z = rz + (this.rng.chance(0.5) ? 10 : -10);
+      } else {
+        const rx = this.rng.int(-3, 5) * 100; // north-south street, x >= -300
+        x = rx + (this.rng.chance(0.5) ? 10 : -10);
+        z = this.rng.range(-480, 520);
+      }
       this.peds.push({
         mesh, x, z,
         dir: this.rng.range(0, Math.PI * 2),
         speed: this.rng.range(1.2, 2.4),
         panic: 0,
       });
+    }
+  }
+
+  // Staging helper for ?shot= screenshots: gather the first N real
+  // pedestrians (the same live walkers, not props) onto the given spots
+  // [{x, z, dir?, panic?}] and strike a mid-stride pose, so a staged
+  // frame reads as a busy street. The street keeps simulating them
+  // afterwards unless the shot freezes the frame.
+  gather(spots) {
+    for (let i = 0; i < spots.length && i < this.peds.length; i++) {
+      const p = this.peds[i];
+      const s = spots[i];
+      p.x = s.x; p.z = s.z;
+      if (s.dir !== undefined) p.dir = s.dir;
+      if (s.panic) p.panic = s.panic;
+      p.mesh.position.set(s.x, 0, s.z);
+      p.mesh.rotation.y = p.dir;
+      const hum = p.mesh.userData.humanoid;
+      // fresh varied stride per gathered ped, so the frozen frame does not
+      // show five identical poses
+      p.mesh.userData.walkPhase = this.rng.range(0, Math.PI * 2);
+      if (hum) hum.animate(0.016, { phase: p.mesh.userData.walkPhase, moving: true, running: p.panic > 0, idleTime: 0 });
     }
   }
   update(dt, playerPos, playerSpeed, gunfire) {

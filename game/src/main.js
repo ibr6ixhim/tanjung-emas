@@ -466,6 +466,7 @@ class Game {
       this.police.placeRoadblock(0, 55, 100, 0);
       this.police.heli.angle = 2.6;
       this.police.update(0.1, { x: 100, z: 100 }, 20, this.colliders, false);
+      this.stageChaseCrowd();
       // hold the staged geometry for the still frame: at SwiftShader speed
       // the chase would otherwise drift for seconds before the screenshot
       // and the units would leave the frame again
@@ -494,6 +495,19 @@ class Game {
       this.missions.enemiesLeft = 4;
       this._fightSpawned = true; // enemies already on the field; don't spawn twice
       this.police.heat = 45; this.police.recomputeStars();
+      this.shotFreeze = true; // hold the scattering crowd still for the frame
+      // a few civilians caught in the alley, scattering from the gunfire
+      this.peds.gather([
+        { x: -294, z: -198, dir: Math.PI - 0.3, panic: 2.5 },
+        { x: -266, z: -199, dir: Math.PI + 0.3, panic: 2.5 },
+        { x: -292, z: -212, dir: Math.PI, panic: 2.5 },
+        { x: -268, z: -213, dir: Math.PI, panic: 2.5 },
+      ]);
+      // two cars on the boulevard just past the fight, headlights in the dark
+      this.traffic.placeCars([
+        { x: -282, z: -218, axis: 'z', speed: 11 },
+        { x: -282, z: -224, axis: 'z', speed: -12 },
+      ]);
       this.clockMin = 21 * 60 + 5;
       this.money = 6420;
       this.health = 78;
@@ -511,6 +525,8 @@ class Game {
       this.camDistOverride = 4.5;
       this.clockMin = 17 * 60 + 55;
       this.money = 18450;
+      this.shotFreeze = true; // hold the gathered crowd still for the frame
+      this.stageHeroCrowd();
       this.hud.showDialog({ name: 'SINTA', role: 'Driver', line: 'Golden hour, Raka. The whole city is ours tonight.' });
     }
     if (shot === 'map') {
@@ -524,6 +540,41 @@ class Game {
       this.refreshPause();
     }
     this.snapCamera();
+  }
+
+  // Crowd staging for the screenshots: gather REAL pedestrians and traffic
+  // cars (the live systems, not props) into the camera's frame. The street
+  // is frozen by shotFreeze for the still, so they stay where placed.
+  stageHeroCrowd() {
+    // Raka stands on the beach boulevard (x=-282) facing the sunset (west).
+    // The road runs north-south across the frame; walkers belong on its
+    // sidewalks and the sand edge, cars on the road itself.
+    this.peds.gather([
+      { x: -291, z: 208, dir: 0 }, { x: -291, z: 218, dir: Math.PI }, { x: -291, z: 228, dir: 0 },
+      { x: -296, z: 213, dir: Math.PI / 2 }, { x: -296, z: 224, dir: -Math.PI / 2 },
+      { x: -296, z: 202, dir: Math.PI }, { x: -294, z: 230, dir: 0 },
+    ]);
+    // cars on the boulevard itself sit outside the west-looking frame, so
+    // the cars in this shot park on the sand edge facing the sunset
+    this.spawnParkedCar(-302, 208, 2);
+    this.spawnParkedCar(-306, 226, 0);
+  }
+
+  stageChaseCrowd() {
+    // the chase runs west along the z=100 road; the camera sits 13 m behind
+    // the car looking west. Walkers belong on the sidewalks (z=90/110),
+    // traffic on the road ahead and the x=100 cross street.
+    this.peds.gather([
+      { x: 45, z: 91, dir: Math.PI / 2 }, { x: 58, z: 91, dir: -Math.PI / 2 }, { x: 70, z: 91, dir: Math.PI / 2 },
+      { x: 48, z: 109, dir: -Math.PI / 2 }, { x: 65, z: 109, dir: Math.PI / 2 }, { x: 78, z: 109, dir: 0 },
+    ]);
+    this.traffic.placeCars([
+      { x: 48, z: 100, axis: 'x', speed: 10 },
+      { x: 68, z: 100, axis: 'x', speed: -11 },
+      { x: 88, z: 100, axis: 'x', speed: 9 },
+      { x: 100, z: 88, axis: 'z', speed: 10 },
+      { x: 100, z: 112, axis: 'z', speed: -9 },
+    ]);
   }
 
   // put the camera exactly where the chase camera would be, so a staged
@@ -642,8 +693,13 @@ class Game {
     }
 
     // traffic + peds + police + weather + missions
-    this.traffic.update(dt, this.playerPos);
-    this.peds.update(dt, this.playerPos, this.playerSpeed, now - this.combat.lastShot < 400);
+    if (!this.shotFreeze) {
+      // a staged ?shot= frame holds the whole street still, so the crowd
+      // gathered for the screenshot stays in frame; live play never sets
+      // shotFreeze, so the street always moves there
+      this.traffic.update(dt, this.playerPos);
+      this.peds.update(dt, this.playerPos, this.playerSpeed, now - this.combat.lastShot < 400);
+    }
     const onWater = this.inBoat || this.playerPos.x < -300;
     if (this.shotFreeze) this.police.updateFrozen(this.playerPos);
     else this.police.update(dt, this.playerPos, this.playerSpeed, this.colliders, onWater);
@@ -706,7 +762,7 @@ class Game {
       if (d2 < 9) {
         c.taken = true; c.mesh.visible = false;
         this.money += 50; this.stats.collectibles++;
-        this.hud.showMessage(`${c.kind} ditemukan! +$50`, 2);
+        this.hud.showMessage(`${c.kind} found! +$50`, 2);
         this.radio.sfx('pickup');
       }
     }
