@@ -150,8 +150,8 @@ export class Police {
       while (dh > Math.PI) dh -= Math.PI * 2;
       while (dh < -Math.PI) dh += Math.PI * 2;
       c.heading += Math.max(-2.2 * dt, Math.min(2.2 * dt, dh));
-      // ram when close, pursue otherwise
-      c.tactic = d < 18 ? 'RAMMING' : (d < 70 ? 'PURSUIT' : 'CLOSING IN');
+      // firing point-blank at 4+ stars, ram when close, pursue otherwise
+      c.tactic = (d < 12 && this.wanted >= 4) ? 'FIRING' : (d < 18 ? 'RAMMING' : (d < 70 ? 'PURSUIT' : 'CLOSING IN'));
       c.speed = Math.min(30 + this.wanted * 2, c.speed + (c.tactic === 'RAMMING' ? 22 : 14) * dt);
       c.x += Math.sin(c.heading) * c.speed * dt;
       c.z += Math.cos(c.heading) * c.speed * dt;
@@ -200,7 +200,7 @@ export class Police {
     this.units = [];
     for (const c of this.cars) {
       const d = Math.hypot(targetPos.x - c.x, targetPos.z - c.z) || 1;
-      this.units.push({ name: c.name, dist: Math.round(d), tactic: d < 18 ? 'RAMMING' : (d < 70 ? 'PURSUIT' : 'CLOSING IN') });
+      this.units.push({ name: c.name, dist: Math.round(d), tactic: (d < 12 && this.wanted >= 4) ? 'FIRING' : (d < 18 ? 'RAMMING' : (d < 70 ? 'PURSUIT' : 'CLOSING IN')) });
     }
     for (const r of this.roadblocks) {
       if (!r.placed) continue;
@@ -209,6 +209,15 @@ export class Police {
     if (this.heli.active) {
       this.units.push({ name: AIR_UNITS[0], dist: Math.round(Math.hypot(this.heli.mesh.position.x - targetPos.x, this.heli.mesh.position.z - targetPos.z)), tactic: 'SPOTLIGHT' });
     }
+  }
+  // stage the helicopter at an exact spot (used by the ?shot= staging so
+  // the cover shows the air unit in frame). Argument order is (x, z, y):
+  // x and z are the ground position, y is the height above the street.
+  // Under shotFreeze the update loop never moves it, so it stays put.
+  placeHeli(x, z, y) {
+    this.heli.active = true;
+    this.heli.mesh.visible = true;
+    this.heli.mesh.position.set(x, y, z);
   }
   // stage a unit at an exact spot (used by the ?shot= staging so the cover
   // screenshot shows the chase instead of empty road)

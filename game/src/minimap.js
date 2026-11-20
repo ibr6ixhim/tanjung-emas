@@ -11,7 +11,7 @@ export class Minimap {
     this.mapCanvas = document.getElementById('fullmap');
     this.mapCtx = this.mapCanvas.getContext('2d');
   }
-  drawRadar(player, heading, target, policeUnits, cars) {
+  drawRadar(player, heading, target, policeUnits, cars, wanted = 0) {
     const ctx = this.ctx, W = 190, H = 190;
     ctx.clearRect(0, 0, W, H);
     ctx.save();
@@ -30,6 +30,16 @@ export class Minimap {
       ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
       const [cx2, cy2] = toMap(-500, v); const [dx2, dy2] = toMap(500, v);
       ctx.beginPath(); ctx.moveTo(cx2, cy2); ctx.lineTo(dx2, dy2); ctx.stroke();
+    }
+    // search zone: at 3+ stars the police hunt inside a dashed red circle
+    // around the player, drawn under the markers so it never hides them
+    if (wanted >= 3) {
+      ctx.save();
+      ctx.setLineDash([7, 6]);
+      ctx.strokeStyle = 'rgba(255,58,58,0.95)';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(cx, cy, 90 * scale, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
     }
     // mission marker
     if (target) {

@@ -11,6 +11,7 @@ export class MissionRunner {
     this.stage = 0;
     this.active = false;
     this.enemiesLeft = 0;
+    this.timeLeft = null; // seconds left on a timed stage, null when untimed
     this.completed = new Set();
     // floating beacon at the current objective
     const geo = new THREE.CylinderGeometry(1.6, 1.6, 26, 12, 1, true);
@@ -28,8 +29,24 @@ export class MissionRunner {
   current() { return MISSIONS[this.index]; }
   start() {
     this.active = true; this.stage = 0;
+    this.resetTimer();
     this.showStageDialog();
     this.placeBeacon();
+  }
+  // (re)arm the countdown from the current stage's timeLimit, if it has one
+  resetTimer() {
+    const m = this.current();
+    const s = m && m.stages[this.stage];
+    this.timeLeft = s && s.timeLimit ? s.timeLimit : null;
+  }
+  // out of time: the stage restarts from its first step, money and respect
+  // are kept — the trail went cold, not the whole career
+  failStage() {
+    this.stage = 0;
+    this.resetTimer();
+    this.placeBeacon();
+    this.showStageDialog();
+    if (this.hooks.onMessage) this.hooks.onMessage('TIME UP — the trail went cold. The mission starts over.');
   }
   showStageDialog() {
     const m = this.current();
@@ -62,6 +79,7 @@ export class MissionRunner {
       objective: s ? s.text : '',
       stage: `STAGE ${Math.min(this.stage + 1, m.stages.length)}/${m.stages.length}`,
       next: next ? `NEXT: ${next.text}` : `NEXT: Finish the mission — reward $${m.pay}`,
+      time: this.timeLeft != null ? Math.ceil(this.timeLeft) : null,
     };
   }
   // called every frame: returns true when the current stage just completed
@@ -88,11 +106,12 @@ export class MissionRunner {
     this.stage++;
     this.hooks.onStageComplete(m, this.stage);
     if (this.stage >= m.stages.length) this.completeMission();
-    else { this.showStageDialog(); this.placeBeacon(); }
+    else { this.resetTimer(); this.showStageDialog(); this.placeBeacon(); }
   }
   completeMission() {
     const m = this.current();
     this.completed.add(m.id);
+    this.timeLeft = null;
     // advance first: the completion hook autosaves, and the save must record
     // the NEXT mission as current, not the one just finished
     this.index++;
@@ -110,6 +129,12 @@ export class MissionRunner {
     }));
   }
   update(dt) {
+    // timed stage: count down (a dt of 0 freezes the clock — used by the
+    // ?shot= staging so the badge reads the full limit in the still)
+    if (this.active && this.timeLeft != null) {
+      this.timeLeft -= dt;
+      if (this.timeLeft <= 0) { this.timeLeft = null; this.failStage(); return; }
+    }
     if (this.beacon.visible) {
       this.beacon.rotation.y += dt * 1.2;
       const s = 1 + Math.sin(performance.now() / 400) * 0.08;

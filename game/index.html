@@ -140,6 +140,15 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #0f0b14; f
 #pause .overlay-box h2 { margin-bottom: 8px; }
 #pause .overlay-box button { padding: 9px 20px; }
 #pause .save-slot { padding: 7px 10px; margin-top: 6px; }
+
+/* v7: timed-stage badge (gold, same voice as the distance badge) + FIRING
+   tactic + six dispatch rows compacted so the box still clears the vitals
+   panel below it at 1280x800. */
+#mission-timer { display: inline-block; margin-top: 8px; margin-left: 6px; padding: 4px 10px; font-size: 13.5px; font-weight: 800; color: #1a1024; background: #ffd34f; border-radius: 5px; }
+#mission-timer.time-low { background: #ff3a3a; color: #fff; animation: pulse 0.75s ease-in-out infinite; }
+.tactic.firing { color: #ff5252; }
+#dispatch-box { top: 232px; }
+.dispatch-row { padding: 3px 0; font-size: 12.5px; }
 </style>
 </head>
 <body>
@@ -155,6 +164,7 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #0f0b14; f
     <div id="mission-stage"></div>
     <div id="mission-next"></div>
     <span id="objective-dist"></span>
+    <span id="mission-timer" class="hidden"></span>
   </div>
   <div id="stats-panel" class="panel">
     <div id="money">$350</div>

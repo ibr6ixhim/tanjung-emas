@@ -97,18 +97,18 @@ export const MISSIONS = [
     { text: 'Meet the informant in Downtown', type: 'goto', target: [150, 100], dialog: { name: 'NADIA', role: 'Hacker', line: 'The Neon gang convoy passes here at 6 PM. We ambush it.' } },
     { text: 'Take out the convoy guards', type: 'fight', target: [220, 220], dialog: { name: 'NADIA', role: 'Hacker', line: 'Here they come! Take cover!' } },
     { text: 'Steal the convoy car and run', type: 'steal', target: [250, 200], dialog: { name: 'NADIA', role: 'Hacker', line: 'That car is ours now. Go!' } },
-    { text: 'Take the car to the Sunset Beach safehouse', type: 'deliver', target: [-240, 300], dialog: { name: 'NADIA', role: 'Hacker', line: 'Perfect. No one knows we are here.' } },
+    { text: 'Take the car to the Sunset Beach safehouse', type: 'deliver', target: [-240, 300], timeLimit: 150, dialog: { name: 'NADIA', role: 'Hacker', line: 'Perfect. No one knows we are here.' } },
   ]},
   { id: 7, name: 'Storm in the Strait', pay: 2200, storm: true, stages: [
     { text: 'The storm is coming — meet Sinta at the lighthouse', type: 'storm', target: [-310, 60], dialog: { name: 'SINTA', role: 'Driver', line: 'Heavy rain, slick roads. But this is the only way out.' } },
-    { text: 'Steal a boat and cross the strait in the storm', type: 'boat', target: [-380, -100], dialog: { name: 'SINTA', role: 'Driver', line: 'Huge waves! Hold the wheel tight!' } },
+    { text: 'Steal a boat and cross the strait in the storm', type: 'boat', target: [-380, -100], timeLimit: 240, dialog: { name: 'SINTA', role: 'Driver', line: 'Huge waves! Hold the wheel tight!' } },
     { text: 'Reach the hidden dock', type: 'boat', target: [-340, -280], dialog: { name: 'SINTA', role: 'Driver', line: 'We made it. The storm covered our trail.' } },
   ]},
   { id: 8, name: 'King of Tanjung Emas', pay: 3000, stages: [
     { text: 'Gather the crew at the Neon Village hideout', type: 'goto', target: [400, 60], dialog: { name: 'BIMO', role: 'Mechanic', line: 'Everyone is ready. Tonight we take the city.' } },
     { text: 'Storm the Neon gang hideout', type: 'fight', target: [460, 120], dialog: { name: 'NADIA', role: 'Hacker', line: 'I already killed their alarm. Go in!' } },
     { text: 'Face the gang boss on the hideout roof', type: 'fight', target: [480, 140], dialog: { name: 'SINTA', role: 'Driver', line: 'There he is. End this, Raka.' } },
-    { text: 'Return to Sunset Beach as a legend', type: 'goto', target: [-282, 260], dialog: { name: 'SINTA', role: 'Driver', line: 'Tanjung Emas is ours now.' } },
+    { text: 'Return to Sunset Beach as a legend', type: 'goto', target: [-282, 260], timeLimit: 180, dialog: { name: 'SINTA', role: 'Driver', line: 'Tanjung Emas is ours now.' } },
   ]},
 ];
 

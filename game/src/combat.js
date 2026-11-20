@@ -35,6 +35,8 @@ export class Combat {
     this.flash = new THREE.PointLight(0xffd27a, 0, 18);
     scene.add(this.flash);
     this.crosshairHit = false;
+    this.holdFlash = false; // staged ?shot= frame only: keep the last shot
+    // lit for the still; live play never sets this
   }
   weapon() { return WEAPONS[this.weaponIndex]; }
   select(i) {
@@ -111,8 +113,15 @@ export class Combat {
     return false;
   }
   update(dt, playerPos, onPlayerHit) {
-    this.flash.intensity = Math.max(0, this.flash.intensity - dt * 30);
-    for (const t of this.tracers) t.ttl -= dt;
+    if (this.holdFlash) {
+      // staged frame: the flash stays at full brightness and the tracer
+      // never expires, so the still shows the shot in flight
+      this.flash.intensity = 3;
+      for (const t of this.tracers) t.ttl = 0.08;
+    } else {
+      this.flash.intensity = Math.max(0, this.flash.intensity - dt * 30);
+      for (const t of this.tracers) t.ttl -= dt;
+    }
     this.tracers = this.tracers.filter(t => {
       if (t.ttl <= 0) { this.scene.remove(t.line); t.line.geometry.dispose(); return false; }
       return true;

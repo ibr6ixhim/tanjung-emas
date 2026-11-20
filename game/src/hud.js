@@ -75,6 +75,14 @@ export class Hud {
     el('mission-objective').textContent = s.mission.objective;
     el('mission-stage').textContent = s.mission.stage;
     el('mission-next').textContent = s.mission.next;
+    // timed stage badge: gold TIME m:ss, red and pulsing under 30 seconds
+    const timerEl = el('mission-timer');
+    if (s.mission.time != null) {
+      const t = s.mission.time;
+      timerEl.textContent = `TIME ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+      timerEl.classList.toggle('time-low', t <= 30);
+      timerEl.classList.remove('hidden');
+    } else timerEl.classList.add('hidden');
     // money + stars + clock (top-right)
     el('money').textContent = '$' + Math.round(s.money).toLocaleString('en-US');
     let stars = '';
@@ -104,10 +112,12 @@ export class Hud {
       slot.textContent = `${i + 1} ${w.name} ${w.locked ? 'LOCKED' : ammo}`;
       slot.className = 'weapon-slot' + (i === s.weaponIndex ? ' active' : '') + (w.locked ? ' locked' : '');
     }
-    // police dispatch (left-centre)
+    // police dispatch (left-centre): nearest first, heli and roadblocks
+    // included, six rows so a full 4-star response stays readable
     const dl = el('dispatch');
     dl.innerHTML = '';
-    for (const u of s.units.slice(0, 5)) {
+    const rows = [...s.units].sort((a, b) => a.dist - b.dist).slice(0, 6);
+    for (const u of rows) {
       const row = document.createElement('div');
       row.className = 'dispatch-row';
       row.innerHTML = `<span class="unit">${u.name}</span><span class="dist">${u.dist}m</span><span class="tactic ${u.tactic.toLowerCase()}">${u.tactic}</span>`;

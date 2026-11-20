@@ -172,27 +172,45 @@ export function buildWorld(scene, seed) {
   });
   group.add(buildingMesh, roofMesh);
 
-  // --- palms along the boulevard and the beach (instanced trunks + leaves) ---
+  // --- palms along the boulevard and the beach (instanced trunks + fronds) ---
+  // A crown used to be one 5-sided cone; from some angles it read as a flat
+  // teal triangle floating over the street. Now each crown is six thin
+  // fronds drooping out and down (~129° from straight up) plus a small
+  // heart cone, so a palm reads as a palm from every angle. The palm
+  // positions are unchanged (same seeded layout).
   const trunkMat = new THREE.MeshLambertMaterial({ color: 0x7a5230 });
   const leafMat = new THREE.MeshLambertMaterial({ color: 0x2f9e5f });
   const trunkGeo = new THREE.CylinderGeometry(0.5, 0.8, 9, 6);
-  const leafGeo = new THREE.ConeGeometry(3.2, 5, 5);
+  const frondGeo = new THREE.ConeGeometry(0.85, 6, 4);
+  const heartGeo = new THREE.ConeGeometry(1.1, 2.2, 6);
   const palmData = [];
   for (let z = -480; z <= 480; z += 40) {
     for (const x of [CITY.beachX + 2, CITY.beachX + 34]) {
       palmData.push({ x: x + rng.range(-2, 2), z: z + rng.range(-4, 4) });
     }
   }
+  const FRONDS = 6;
   const trunkMesh = new THREE.InstancedMesh(trunkGeo, trunkMat, palmData.length);
-  const leafMesh = new THREE.InstancedMesh(leafGeo, leafMat, palmData.length);
-  trunkMesh.castShadow = true; leafMesh.castShadow = true;
+  const frondMesh = new THREE.InstancedMesh(frondGeo, leafMat, palmData.length * FRONDS);
+  const heartMesh = new THREE.InstancedMesh(heartGeo, leafMat, palmData.length);
+  trunkMesh.castShadow = true; frondMesh.castShadow = true; heartMesh.castShadow = true;
+  const up = new THREE.Vector3(0, 1, 0);
+  const tilt = 129 * Math.PI / 180; // fronds droop 39° below horizontal
   palmData.forEach((p, i) => {
     dummy.position.set(p.x, 4.5, p.z); dummy.scale.set(1, 1, 1); dummy.rotation.set(0, 0, 0); dummy.updateMatrix();
     trunkMesh.setMatrixAt(i, dummy.matrix);
-    dummy.position.set(p.x, 10.5, p.z); dummy.updateMatrix();
-    leafMesh.setMatrixAt(i, dummy.matrix);
+    dummy.position.set(p.x, 9.8, p.z); dummy.rotation.set(0, 0, 0); dummy.updateMatrix();
+    heartMesh.setMatrixAt(i, dummy.matrix);
+    for (let j = 0; j < FRONDS; j++) {
+      const a = (j / FRONDS) * Math.PI * 2 + i * 0.7;
+      const dir = new THREE.Vector3(Math.sin(tilt) * Math.cos(a), Math.cos(tilt), Math.sin(tilt) * Math.sin(a));
+      dummy.position.set(p.x + dir.x * 2.0, 9.3 + dir.y * 2.0, p.z + dir.z * 2.0);
+      dummy.quaternion.setFromUnitVectors(up, dir);
+      dummy.updateMatrix();
+      frondMesh.setMatrixAt(i * FRONDS + j, dummy.matrix);
+    }
   });
-  group.add(trunkMesh, leafMesh);
+  group.add(trunkMesh, frondMesh, heartMesh);
 
   // --- street lamps with warm glow (instanced poles + bulbs) ---
   const poleMat = new THREE.MeshLambertMaterial({ color: 0x333333 });

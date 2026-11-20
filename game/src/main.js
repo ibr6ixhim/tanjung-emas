@@ -113,6 +113,7 @@ class Game {
     this.missions = new MissionRunner(this.scene, {
       onDialog: (d) => this.hud.showDialog(d),
       onStageComplete: () => { this.radio.sfx('pickup'); },
+      onMessage: (t) => this.hud.showMessage(t, 4),
       onMissionComplete: (m) => {
         this.money += m.pay; this.stats.moneyEarned += m.pay;
         this.respect += ECONOMY.respectPerMission;
@@ -447,46 +448,62 @@ class Game {
     this.radio.start();
     if (shot === 'title') { this.showTitle(); return; }
     if (shot === 'chase') {
-      this.missions.index = 2; this.missions.start();
+      // late-game pursuit: M6 stage 4/4 on a 150-second clock, Raka in the
+      // MERAK S at 112 km/h with a 4-star response closing in — the first
+      // patrol car sits 11 m ahead, inside FIRING range
+      this.missions.index = 5; this.missions.completed = new Set([1, 2, 3, 4, 5]); this.missions.start();
+      this.missions.stage = 3; this.missions.resetTimer(); this.missions.placeBeacon();
       this.car.setModel(CAR_MODELS[3]);
       this.car.reset(100, 100, -Math.PI / 2); // heading west, into the sunset
       this.car.mesh.visible = true;
       this.inCar = true; this.player.mesh.visible = false;
-      this.car.speed = 26; // 94 km/h on the dial
+      this.car.speed = 31; // 112 km/h on the dial
       this.input.forward = false;
       this.police.heat = 70; this.police.recomputeStars();
       // stage the chase INSIDE the camera's frame: the chase camera sits
       // 13 m behind the car looking west, so units must be AHEAD of the
-      // car (west of it) — v1 placed them east of the camera and they never
-      // appeared. Two cars flank the road ahead, one closes in from the
-      // right, a roadblock waits 45 m ahead, heli ahead-left.
-      this.police.placeCar(0, 78, 93, -Math.PI / 2);
-      this.police.placeCar(1, 86, 108, -Math.PI / 2);
-      this.police.placeCar(2, 96, 90, -Math.PI / 2);
+      // car (west of it). Car 0 rides the bumper at 11 m (FIRING); the
+      // others flank the road ahead; a roadblock waits 45 m ahead and a
+      // second one guards the cross street to the north-east.
+      this.police.placeCar(0, 89, 100, -Math.PI / 2);
+      this.police.placeCar(1, 78, 93, -Math.PI / 2);
+      this.police.placeCar(2, 86, 108, -Math.PI / 2);
+      this.police.placeCar(3, 96, 90, -Math.PI / 2);
+      this.police.placeCar(4, 70, 104, -Math.PI / 2);
       this.police.placeRoadblock(0, 55, 100, 0);
-      this.police.heli.angle = 2.6;
-      this.police.update(0.1, { x: 100, z: 100 }, 20, this.colliders, false);
+      this.police.placeRoadblock(1, 62, 68, Math.PI / 2);
+      this.police.placeHeli(60, 122, 28); // ahead-left, spotlight in frame
       this.stageChaseCrowd();
       // hold the staged geometry for the still frame: at SwiftShader speed
       // the chase would otherwise drift for seconds before the screenshot
       // and the units would leave the frame again
       this.shotFreeze = true;
       this.clockMin = 17 * 60 + 41;
-      this.money = 18450;
-      this.hud.showDialog({ name: 'NADIA', role: 'Hacker', line: 'The police are right behind us! Do not stop on the boulevard!' });
+      this.money = 92480; this.respect = 2900;
+      this.hud.showDialog({ name: 'NADIA', role: 'Hacker', line: 'Roadblock ahead and the heli is on us. Do not stop!' });
     }
     if (shot === 'combat') {
-      this.missions.index = 1; this.missions.start(); this.missions.stage = 1;
-      this.missions.placeBeacon();
+      // night storm at the Neon hideout: M8 stage 2/4, Raka on foot facing
+      // north into the gang, four enemies in a fan right in front of him —
+      // one sits exactly on the x=460 firing line, so the staged shot lands
+      this.missions.index = 7; this.missions.completed = new Set([1, 2, 3, 4, 5, 6, 7]); this.missions.start();
+      this.missions.stage = 1; this.missions.placeBeacon();
       this.weather.setStorm(true);
-      this.playerPos.set(-280, 0, -190);
+      // the hideout stands at (460,120); the open strip south of it is
+      // z 108-133 — the building behind starts at z 133.5, and the
+      // collider teleports anyone who spawns inside it, so Raka stands
+      // at z 128, clear of the wall, facing north into the gang
+      this.playerPos.set(452, 0, 128);
+      this.playerHeading = Math.PI; this.camYaw = Math.PI; // face north
+      this.camDistOverride = 11; // pull the camera back: Raka reads smaller
+      // and the gang ahead of him reads bigger in the frame
       this.combat.select(2);
       // enemies ahead of the player, inside the camera's view (camera looks -z)
-      this.combat.spawnEnemies([-282, -215], 4);
+      this.combat.spawnEnemies([458, 110], 4);
       // pull the four enemies into a tight fan right in front of the
-      // player: at spawn range they read as small dots; at 13-18 m their
-      // health bars and red shirts fill the middle of the frame
-      const fan = [[-286, -203], [-280, -206], [-274, -203], [-283, -208]];
+      // player: at 10-14 m their health bars and red shirts fill the
+      // middle of the frame instead of reading as dots
+      const fan = [[446, 118], [452, 114], [458, 116], [464, 120]];
       this.combat.enemies.forEach((e, i) => {
         const p = fan[i % fan.length];
         e.x = p[0]; e.z = p[1];
@@ -495,46 +512,77 @@ class Game {
       this.missions.enemiesLeft = 4;
       this._fightSpawned = true; // enemies already on the field; don't spawn twice
       this.police.heat = 45; this.police.recomputeStars();
+      // patrol cars on the roads around the fight, two of them close enough
+      // to read in frame on the z=100 road
+      this.police.placeCar(0, 435, 100, 0);
+      this.police.placeCar(1, 472, 98, 0);
+      this.police.placeCar(2, 400, 140, 0);
+      this.police.placeCar(3, 500, 150, 0);
+      // low and far so the air unit reads inside the on-foot camera's frame
+      this.police.placeHeli(410, 70, 28);
       this.shotFreeze = true; // hold the scattering crowd still for the frame
       // a few civilians caught in the alley, scattering from the gunfire
       this.peds.gather([
-        { x: -294, z: -198, dir: Math.PI - 0.3, panic: 2.5 },
-        { x: -266, z: -199, dir: Math.PI + 0.3, panic: 2.5 },
-        { x: -292, z: -212, dir: Math.PI, panic: 2.5 },
-        { x: -268, z: -213, dir: Math.PI, panic: 2.5 },
+        { x: 440, z: 120, dir: Math.PI - 0.3, panic: 2.5 },
+        { x: 470, z: 120, dir: Math.PI + 0.3, panic: 2.5 },
+        { x: 442, z: 130, dir: Math.PI, panic: 2.5 },
+        { x: 468, z: 130, dir: Math.PI, panic: 2.5 },
       ]);
-      // two cars on the boulevard just past the fight, headlights in the dark
+      // two cars on the cross street just past the fight, headlights in the dark
       this.traffic.placeCars([
-        { x: -282, z: -218, axis: 'z', speed: 11 },
-        { x: -282, z: -224, axis: 'z', speed: -12 },
+        { x: 400, z: 80, axis: 'z', speed: 11 },
+        { x: 400, z: 160, axis: 'z', speed: -12 },
       ]);
       this.clockMin = 21 * 60 + 5;
-      this.money = 6420;
+      this.money = 92480; this.respect = 2900;
       this.health = 78;
-      this.hud.showDialog({ name: 'BIMO', role: 'Mechanic', line: 'They are coming from the alley! Take cover!' });
+      // one live shot so the muzzle flash + tracer are in the still, then
+      // hold them lit (combat.holdFlash) instead of letting them decay.
+      // The world matrices must be refreshed first: the enemies were just
+      // repositioned and the raycast would otherwise test them at the
+      // origin, before the first render updates their matrices.
+      this.scene.updateMatrixWorld(true);
+      this.tryShoot();
+      this.combat.holdFlash = true;
+      this.hud.showDialog({ name: 'NADIA', role: 'Hacker', line: 'I already killed their alarm. Go in!' });
     }
     if (shot === 'hero') {
-      // Raka close-up at golden hour: on the beach boulevard facing the
-      // sunset, camera pulled in close so the hero fills the frame. The
-      // camera looks slightly south-west so the nearest palm stays out of
-      // the centre of the frame.
-      this.missions.index = 0; this.missions.start();
-      this.playerPos.set(-282, 0, 220);
-      this.playerHeading = -Math.PI / 2 - 0.25; // face south-west, into the sun
-      this.camYaw = -Math.PI / 2 - 0.25;
-      this.camDistOverride = 4.5;
+      // the cover: M8 stage 4/4 on a 180-second clock, Raka in the MERAK S
+      // at 108 km/h down the Sunset Beach road into the sunset, a 4-star
+      // response ahead of him and the heli's spotlight in the sky
+      this.missions.index = 7; this.missions.completed = new Set([1, 2, 3, 4, 5, 6, 7]); this.missions.start();
+      this.missions.stage = 3; this.missions.resetTimer(); this.missions.placeBeacon();
+      this.car.setModel(CAR_MODELS[3]); // MERAK S
+      this.car.reset(-240, 200, -Math.PI / 2); // heading west along the z=200 road
+      this.car.mesh.visible = true;
+      this.inCar = true; this.player.mesh.visible = false;
+      this.car.speed = 30; // 108 km/h on the dial
+      this.police.heat = 70; this.police.recomputeStars();
+      // five patrol cars ahead on the road (one at 17 m, RAMMING), two
+      // roadblocks further west, heli ahead-right with its spotlight cone
+      this.police.placeCar(0, -262, 192, -Math.PI / 2);
+      this.police.placeCar(1, -268, 208, -Math.PI / 2);
+      this.police.placeCar(2, -278, 196, -Math.PI / 2);
+      this.police.placeCar(3, -256, 206, -Math.PI / 2);
+      this.police.placeCar(4, -290, 204, -Math.PI / 2);
+      this.police.placeRoadblock(0, -282, 200, 0);
+      this.police.placeRoadblock(1, -296, 200, Math.PI / 2);
+      this.police.placeHeli(-288, 186, 26);
       this.clockMin = 17 * 60 + 55;
-      this.money = 18450;
+      this.money = 92480; this.respect = 2900;
       this.shotFreeze = true; // hold the gathered crowd still for the frame
       this.stageHeroCrowd();
-      this.hud.showDialog({ name: 'SINTA', role: 'Driver', line: 'Golden hour, Raka. The whole city is ours tonight.' });
+      this.hud.showDialog({ name: 'SINTA', role: 'Driver', line: 'The whole city is watching, Raka. Do not stop now!' });
     }
     if (shot === 'map') {
-      this.missions.index = 0; this.missions.completed.add(1); this.missions.index = 1;
+      // late-game pause: seven missions done, the finale next, a career
+      // worth showing — big money, high respect, miles on the clock
+      this.missions.index = 7; this.missions.completed = new Set([1, 2, 3, 4, 5, 6, 7]);
       this.missions.start();
-      this.stats.carsStolen = 7; this.stats.distanceKm = 48.2; this.stats.moneyEarned = 3210;
-      this.respect = 960;
-      this.money = 18450;
+      this.stats.carsStolen = 34; this.stats.distanceKm = 186.4; this.stats.moneyEarned = 41200; this.stats.collectibles = 18;
+      this.respect = 2900;
+      this.money = 92480;
+      this.clockMin = 17 * 60 + 30;
       this.state = 'paused';
       $('pause').classList.remove('hidden');
       this.refreshPause();
@@ -546,16 +594,26 @@ class Game {
   // cars (the live systems, not props) into the camera's frame. The street
   // is frozen by shotFreeze for the still, so they stay where placed.
   stageHeroCrowd() {
-    // Raka stands on the beach boulevard (x=-282) facing the sunset (west).
-    // The road runs north-south across the frame; walkers belong on its
-    // sidewalks and the sand edge, cars on the road itself.
+    // the hero chase runs west along the z=200 road; the camera sits 13 m
+    // behind the car looking west. Walkers belong on the sidewalks
+    // (z=190/210) and the sand edge, traffic on the road ahead — the frame
+    // should read as a busy sunset strip, not an empty boulevard
     this.peds.gather([
-      { x: -291, z: 208, dir: 0 }, { x: -291, z: 218, dir: Math.PI }, { x: -291, z: 228, dir: 0 },
-      { x: -296, z: 213, dir: Math.PI / 2 }, { x: -296, z: 224, dir: -Math.PI / 2 },
-      { x: -296, z: 202, dir: Math.PI }, { x: -294, z: 230, dir: 0 },
+      { x: -248, z: 190, dir: Math.PI / 2 }, { x: -258, z: 190, dir: -Math.PI / 2 },
+      { x: -272, z: 190, dir: Math.PI / 2 }, { x: -284, z: 190, dir: 0 },
+      { x: -250, z: 210, dir: -Math.PI / 2 }, { x: -262, z: 210, dir: Math.PI / 2 },
+      { x: -276, z: 210, dir: 0 }, { x: -288, z: 210, dir: Math.PI },
+      { x: -296, z: 216, dir: -Math.PI / 2 }, { x: -244, z: 216, dir: Math.PI / 2 },
     ]);
-    // cars on the boulevard itself sit outside the west-looking frame, so
-    // the cars in this shot park on the sand edge facing the sunset
+    this.traffic.placeCars([
+      { x: -252, z: 200, axis: 'x', speed: 10 },
+      { x: -266, z: 200, axis: 'x', speed: -11 },
+      { x: -280, z: 200, axis: 'x', speed: 9 },
+      { x: -300, z: 188, axis: 'z', speed: 10 },
+      { x: -300, z: 212, axis: 'z', speed: -9 },
+      { x: -230, z: 200, axis: 'x', speed: 12 },
+    ]);
+    // two cars parked on the sand edge facing the sunset
     this.spawnParkedCar(-302, 208, 2);
     this.spawnParkedCar(-306, 226, 0);
   }
@@ -567,6 +625,7 @@ class Game {
     this.peds.gather([
       { x: 45, z: 91, dir: Math.PI / 2 }, { x: 58, z: 91, dir: -Math.PI / 2 }, { x: 70, z: 91, dir: Math.PI / 2 },
       { x: 48, z: 109, dir: -Math.PI / 2 }, { x: 65, z: 109, dir: Math.PI / 2 }, { x: 78, z: 109, dir: 0 },
+      { x: 38, z: 91, dir: 0 }, { x: 84, z: 109, dir: Math.PI },
     ]);
     this.traffic.placeCars([
       { x: 48, z: 100, axis: 'x', speed: 10 },
@@ -574,6 +633,7 @@ class Game {
       { x: 88, z: 100, axis: 'x', speed: 9 },
       { x: 100, z: 88, axis: 'z', speed: 10 },
       { x: 100, z: 112, axis: 'z', speed: -9 },
+      { x: 40, z: 100, axis: 'x', speed: 12 },
     ]);
   }
 
@@ -706,7 +766,9 @@ class Game {
     this.boats.updatePolice(dt, this.playerPos, this.police.wanted);
     this.weather.update(dt, this.playerPos);
     this.particles.update(dt);
-    this.missions.update(dt);
+    // a staged ?shot= frame freezes the mission clock too, so the TIME
+    // badge reads the stage's full limit in the still
+    this.missions.update(this.shotFreeze ? 0 : dt);
 
     // golden hour follows the player: the low sun and its shadow camera
     // stay centred on the action, the sky dome and sun disc on the camera
@@ -815,7 +877,7 @@ class Game {
       song: this.radio.currentSong(),
       objectiveDist: target ? Math.hypot(target.x - this.playerPos.x, target.z - this.playerPos.z) : null,
     });
-    this.minimap.drawRadar(this.playerPos, this.camYaw, target, this.police.cars, this.traffic.cars);
+    this.minimap.drawRadar(this.playerPos, this.camYaw, target, this.police.cars, this.traffic.cars, this.police.wanted);
   }
 
   die() {
