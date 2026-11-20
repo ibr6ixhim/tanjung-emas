@@ -644,10 +644,14 @@ class Game {
     const heading = this.inCar ? this.car.heading : (this.inBoat ? this.boats.playerBoat.heading : this.camYaw);
     const dist = this.inCar ? 13 : (this.inBoat ? 12 : (this.camDistOverride || 8.5));
     const height = this.inCar ? 5.5 : (this.inBoat ? 5 : 2.6);
+    // staged ?shot= frame in a car: shift the camera 4 m to the side so the
+    // still is a three-quarter rear view — the spoiler, hood slope and the
+    // car's flank read, instead of a flat rear view that hides the new mesh
+    const side = (this.shotFreeze && this.inCar) ? 4 : 0;
     this.camera.position.set(
-      focus.x - Math.sin(heading) * dist,
+      focus.x - Math.sin(heading) * dist + Math.cos(heading) * side,
       focus.y + height + Math.sin(this.camPitch) * 2,
-      focus.z - Math.cos(heading) * dist,
+      focus.z - Math.cos(heading) * dist - Math.sin(heading) * side,
     );
     // aim the crosshair at a far point so the camera sits nearly level:
     // a near aim point pitches the view down and the shot ray into the ground
@@ -843,6 +847,9 @@ class Game {
       prompt.textContent = '[F] EXIT';
       prompt.classList.remove('hidden');
     }
+    // staged ?shot= frame: hide the context prompt so it never covers the
+    // car (it used to hide the spoiler in the hero/chase stills)
+    if (this.shotFreeze) prompt.classList.add('hidden');
 
     // HUD
     const mission = this.missions.missionText();
@@ -915,8 +922,10 @@ class Game {
     const heading = this.inCar ? this.car.heading : (this.inBoat ? this.boats.playerBoat.heading : this.camYaw);
     const dist = this.inCar ? 13 : (this.inBoat ? 12 : (this.camDistOverride || 8.5));
     const height = this.inCar ? 5.5 : (this.inBoat ? 5 : 2.6);
-    const tx = focus.x - Math.sin(heading) * dist;
-    const tz = focus.z - Math.cos(heading) * dist;
+    // staged ?shot= frame in a car: three-quarter rear view (see snapCamera)
+    const side = (this.shotFreeze && this.inCar) ? 4 : 0;
+    const tx = focus.x - Math.sin(heading) * dist + Math.cos(heading) * side;
+    const tz = focus.z - Math.cos(heading) * dist - Math.sin(heading) * side;
     const ty = focus.y + height + Math.sin(this.camPitch) * 2;
     this.camera.position.x += (tx - this.camera.position.x) * Math.min(1, dt * 6);
     this.camera.position.y += (ty - this.camera.position.y) * Math.min(1, dt * 6);
