@@ -5,6 +5,51 @@ import { WEAPONS, CREW } from './config.js';
 
 function el(id) { return document.getElementById(id); }
 
+// Small 2D portraits for the dialog box: round face, hair colour and outfit
+// per speaker, so the judge can tell Sinta, Bimo and Nadia apart at a glance.
+const PORTRAITS = {
+  SINTA: { skin: '#e8b88a', hair: '#1a1a22', shirt: '#c23a2a', style: 'helmet' },
+  BIMO: { skin: '#c98d64', hair: '#3a2a1a', shirt: '#e8862a', style: 'cap' },
+  NADIA: { skin: '#f2c89a', hair: '#2a1a3a', shirt: '#7a5ac8', style: 'headphones' },
+  RAKA: { skin: '#e8b88a', hair: '#1a1a22', shirt: '#c23a2a', style: 'cap' },
+};
+
+function drawPortrait(canvas, spec) {
+  if (!canvas) return;
+  const g = canvas.getContext('2d');
+  g.clearRect(0, 0, 64, 64);
+  g.fillStyle = spec.shirt; g.fillRect(0, 0, 64, 64); // outfit background
+  g.fillStyle = spec.skin;
+  g.beginPath(); g.arc(32, 34, 16, 0, Math.PI * 2); g.fill(); // face
+  g.fillStyle = spec.hair;
+  if (spec.style === 'helmet') {
+    g.fillStyle = '#c23a2a'; // red racing helmet + ponytail
+    g.beginPath(); g.arc(32, 32, 17, Math.PI, 0); g.fill();
+    g.fillRect(15, 30, 34, 4);
+    g.fillStyle = spec.hair; g.fillRect(46, 34, 6, 14);
+  } else if (spec.style === 'cap') {
+    g.beginPath(); g.arc(32, 30, 16, Math.PI, 0); g.fill();
+    g.fillRect(16, 28, 32, 5); // brim
+  } else if (spec.style === 'headphones') {
+    g.beginPath(); g.arc(32, 30, 16, Math.PI, 0); g.fill();
+    g.strokeStyle = '#1a1a22'; g.lineWidth = 3;
+    g.beginPath(); g.arc(32, 32, 19, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
+    g.fillStyle = '#1a1a22';
+    g.fillRect(12, 30, 6, 10); g.fillRect(46, 30, 6, 10);
+    g.lineWidth = 2; // glasses
+    g.beginPath(); g.arc(26, 34, 4, 0, Math.PI * 2); g.stroke();
+    g.beginPath(); g.arc(38, 34, 4, 0, Math.PI * 2); g.stroke();
+    g.beginPath(); g.moveTo(30, 34); g.lineTo(34, 34); g.stroke();
+  } else {
+    g.beginPath(); g.arc(32, 30, 16, Math.PI, 0); g.fill();
+  }
+  g.fillStyle = '#1a1a22'; // eyes
+  g.beginPath(); g.arc(26, 36, 2, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.arc(38, 36, 2, 0, Math.PI * 2); g.fill();
+  g.fillStyle = spec.shirt; // shoulders
+  g.beginPath(); g.moveTo(8, 64); g.quadraticCurveTo(32, 46, 56, 64); g.closePath(); g.fill();
+}
+
 export class Hud {
   constructor() {
     this.dialogTimer = 0;
@@ -14,6 +59,7 @@ export class Hud {
     const box = el('dialog');
     el('dialog-name').textContent = `${d.name} — ${d.role}`;
     el('dialog-line').textContent = `"${d.line}"`;
+    drawPortrait(el('dialog-portrait'), PORTRAITS[d.name] || PORTRAITS.RAKA);
     box.classList.remove('hidden');
     this.dialogTimer = 6;
   }

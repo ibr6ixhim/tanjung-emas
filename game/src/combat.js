@@ -2,24 +2,23 @@
 // lines, and the rival-gang enemies missions spawn.
 import { WEAPONS } from './config.js';
 import { makeRng } from './random.js';
+import { makeHumanoid } from './humanoid.js';
 
 export function makeEnemyMesh(rng) {
-  const g = new THREE.Group();
-  const shirt = new THREE.MeshLambertMaterial({ color: 0x8a1a2a });
-  const skin = new THREE.MeshLambertMaterial({ color: rng.pick([0xe8b88a, 0xc98d64, 0xf2c89a]) });
-  const legs = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.85, 0.32), new THREE.MeshLambertMaterial({ color: 0x1a1a22 }));
-  legs.position.y = 0.42; g.add(legs);
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.75, 0.38), shirt);
-  body.position.y = 1.2; g.add(body);
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.44, 0.44), skin);
-  head.position.y = 1.8; g.add(head);
-  const gun = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.9), new THREE.MeshLambertMaterial({ color: 0x111111 }));
-  gun.position.set(0.3, 1.25, 0.5); g.add(gun);
+  // Neon gang: dark red shirts, random skin, gun in the right hand, cartoon
+  // outline — the silhouette reads as a hostile at a glance
+  const h = makeHumanoid({
+    skin: rng.pick([0xe8b88a, 0xc98d64, 0xf2c89a]),
+    shirt: rng.pick([0x8a1a2a, 0x6a1a2a, 0x7a2a1a]), pants: 0x1a1a22,
+    hairStyle: 'none', gun: true, outline: true, fadeable: true,
+  });
+  const g = h.group;
   // health bar above the head
   const barBg = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.14), new THREE.MeshBasicMaterial({ color: 0x220000, transparent: true, opacity: 0.85 }));
   barBg.position.y = 2.35; barBg.name = 'barBg'; g.add(barBg);
   const bar = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 0.1), new THREE.MeshBasicMaterial({ color: 0xff3a3a }));
   bar.position.set(0, 2.35, 0.01); bar.name = 'bar'; g.add(bar);
+  g.userData.humanoid = h;
   return g;
 }
 
@@ -54,7 +53,7 @@ export class Combat {
       const z = center[1] + this.rng.range(-14, 14);
       mesh.position.set(x, 0, z);
       this.scene.add(mesh);
-      this.enemies.push({ mesh, hp: 100, x, z, shootTimer: this.rng.range(1, 3), dead: false });
+      this.enemies.push({ mesh, hp: 100, x, z, shootTimer: this.rng.range(1, 3), dead: false, walkPhase: this.rng.range(0, Math.PI * 2) });
     }
     return this.enemies.filter(e => !e.dead).length;
   }
@@ -98,8 +97,8 @@ export class Combat {
         if (bar) bar.scale.x = Math.max(0, hitEnemy.hp / 100);
         if (hitEnemy.hp <= 0) {
           hitEnemy.dead = true;
-          hitEnemy.mesh.rotation.x = -Math.PI / 2;
-          hitEnemy.mesh.position.y = 0.4;
+          // shot down: the body tips over and fades out (humanoid fall)
+          hitEnemy.mesh.userData.humanoid.fall();
           onHit(hitEnemy);
         }
       }
@@ -120,7 +119,12 @@ export class Combat {
     });
     // enemies shuffle toward the player and shoot back
     for (const e of this.enemies) {
-      if (e.dead) continue;
+      const hum = e.mesh.userData.humanoid;
+      if (e.dead) {
+        // keep advancing the fall (tip over + fade out)
+        if (hum) hum.animate(dt, {});
+        continue;
+      }
       const dx = playerPos.x - e.x, dz = playerPos.z - e.z;
       const d = Math.hypot(dx, dz) || 1;
       if (d > 6) {
@@ -129,6 +133,9 @@ export class Combat {
       }
       e.mesh.position.set(e.x, 0, e.z);
       e.mesh.rotation.y = Math.atan2(dx, dz);
+      // jointed walk toward the player, gun arm raised while shooting
+      e.walkPhase += dt * 5;
+      if (hum) hum.animate(dt, { phase: e.walkPhase, moving: d > 6, aiming: d < 42, idleTime: 0 });
       const barBg = e.mesh.getObjectByName('barBg');
       const bar = e.mesh.getObjectByName('bar');
       if (barBg) barBg.lookAt(this.camera.position);

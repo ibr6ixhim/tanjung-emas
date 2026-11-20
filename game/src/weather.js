@@ -27,12 +27,13 @@ export class Weather {
   setStorm(on) {
     this.storm = on;
     this.rain.visible = on;
-    this.scene.fog = new THREE.Fog(on ? 0x1a2233 : 0xd97a5a, on ? 60 : 500, on ? 420 : 1400);
+    this.scene.fog = new THREE.Fog(on ? 0x1a2233 : 0xff9b6b, on ? 60 : 80, on ? 420 : 420);
     // dim the sun light in a storm, and darken the sky dome itself
     this.scene.traverse((o) => {
-      if (o.userData.origIntensity === undefined && (o.isDirectionalLight || o.isAmbientLight)) o.userData.origIntensity = o.intensity;
+      if (o.userData.origIntensity === undefined && (o.isDirectionalLight || o.isAmbientLight || o.isHemisphereLight)) o.userData.origIntensity = o.intensity;
       if (o.isDirectionalLight && o !== this.flashLight) o.intensity = on ? o.userData.origIntensity * 0.3 : o.userData.origIntensity;
       if (o.isAmbientLight) o.intensity = on ? o.userData.origIntensity * 0.4 : o.userData.origIntensity;
+      if (o.isHemisphereLight) o.intensity = on ? o.userData.origIntensity * 0.4 : o.userData.origIntensity;
       if (o.material && o.material.uniforms && o.material.uniforms.top) {
         if (!this._skyOrig) this._skyOrig = { top: o.material.uniforms.top.value.getHex(), mid: o.material.uniforms.mid.value.getHex(), low: o.material.uniforms.low.value.getHex() };
         const src = on ? { top: 0x0a0a1e, mid: 0x2a2a4e, low: 0x3a3a58 } : this._skyOrig;

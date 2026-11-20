@@ -1,23 +1,34 @@
 // Pedestrians: low-poly walkers on the sidewalks. They stroll, wait at corners,
 // and scatter when the player drives or shoots near them.
 import { makeRng } from './random.js';
+import { makeHumanoid } from './humanoid.js';
 
 const SHIRT_COLORS = [0xff6b6b, 0x4ecdc4, 0xffe66d, 0x95e1d3, 0xf38181, 0xaa96da, 0xfcbad3, 0xa8e6cf];
 const SKIN_COLORS = [0xe8b88a, 0xc98d64, 0x8a5a3b, 0xf2c89a];
+const HAIR_COLORS = [0x1a1a22, 0x3a2a1a, 0x6a4a2a, 0x8a8a8a];
+// random accessories: hat, bag (backpack), hijab, umbrella, or nothing
+const ACCESSORIES = ['hat', 'bag', 'hijab', 'umbrella', 'none', 'none', 'none'];
 
 export function makePedMesh(rng) {
-  const g = new THREE.Group();
-  const skin = new THREE.MeshLambertMaterial({ color: rng.pick(SKIN_COLORS) });
-  const shirt = new THREE.MeshLambertMaterial({ color: rng.pick(SHIRT_COLORS) });
-  const pants = new THREE.MeshLambertMaterial({ color: 0x2a2a3a });
-  const legs = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.8, 0.3), pants);
-  legs.position.y = 0.4; legs.name = 'legs'; g.add(legs);
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.7, 0.35), shirt);
-  body.position.y = 1.15; g.add(body);
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.42, 0.42), skin);
-  head.position.y = 1.75; g.add(head);
-  g.userData.walkPhase = rng.range(0, Math.PI * 2);
-  return g;
+  const acc = rng.pick(ACCESSORIES);
+  const h = makeHumanoid({
+    skin: rng.pick(SKIN_COLORS),
+    shirt: rng.pick(SHIRT_COLORS),
+    pants: rng.pick([0x2a2a3a, 0x3a2a1a, 0x1a2a3a]),
+    hair: rng.pick(HAIR_COLORS),
+    hairStyle: acc === 'hijab' ? 'hijab' : (acc === 'hat' ? 'hat' : rng.pick(['none', 'spiky', 'ponytail'])),
+    backpack: acc === 'bag',
+    height: rng.range(0.9, 1.1),
+  });
+  if (acc === 'umbrella') {
+    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.1, 5), new THREE.MeshLambertMaterial({ color: 0x6a4a2a }));
+    stick.position.set(0.42, 1.9, 0.1); stick.castShadow = true; h.group.add(stick);
+    const canopy = new THREE.Mesh(new THREE.ConeGeometry(0.7, 0.28, 8), new THREE.MeshLambertMaterial({ color: rng.pick(SHIRT_COLORS) }));
+    canopy.position.set(0.42, 2.5, 0.1); canopy.castShadow = true; h.group.add(canopy);
+  }
+  h.group.userData.walkPhase = rng.range(0, Math.PI * 2);
+  h.group.userData.humanoid = h;
+  return h.group;
 }
 
 export class Pedestrians {
@@ -60,9 +71,10 @@ export class Pedestrians {
       if (p.z > 540) p.z = 540; if (p.z < -540) p.z = -540;
       p.mesh.position.set(p.x, 0, p.z);
       p.mesh.rotation.y = p.dir;
-      // walk bob
+      // jointed walk: legs swing opposite, arms swing, faster when panicking
       p.mesh.userData.walkPhase += dt * p.speed * 4;
-      p.mesh.children[0].position.y = 0.4 + Math.abs(Math.sin(p.mesh.userData.walkPhase)) * 0.12;
+      const hum = p.mesh.userData.humanoid;
+      if (hum) hum.animate(dt, { phase: p.mesh.userData.walkPhase, moving: true, running: p.panic > 0, idleTime: 0 });
     }
   }
 }

@@ -74,28 +74,37 @@ export class Minimap {
       const [cx2, cy2] = toMap(-500, v); const [dx2, dy2] = toMap(500, v);
       ctx.beginPath(); ctx.moveTo(cx2, cy2); ctx.lineTo(dx2, dy2); ctx.stroke();
     }
-    // districts (small labels, offset up-left so they don't sit on the icons)
+    // districts: label offset away from the sea on the west side, with a
+    // dark pill behind the text so it stays readable over roads and water
     ctx.textAlign = 'center';
     for (const d of DISTRICTS) {
       const [dx, dy] = toMap(d.center[0], d.center[1]);
-      ctx.fillStyle = '#' + d.color.toString(16).padStart(6, '0');
+      const lx = Math.max(58, Math.min(W - 58, dx + (d.center[0] < 0 ? 48 : -48)));
+      const name = d.name.toUpperCase();
       ctx.font = 'bold 11px Arial';
-      ctx.fillText(d.name.toUpperCase(), dx - 42, dy - 26);
+      const pw = Math.max(ctx.measureText(name).width, ctx.measureText(d.standing).width) + 10;
+      ctx.fillStyle = 'rgba(8,6,16,0.65)';
+      ctx.fillRect(lx - pw / 2, dy - 42, pw, 30);
+      ctx.fillStyle = '#' + d.color.toString(16).padStart(6, '0');
+      ctx.fillText(name, lx, dy - 30);
       ctx.fillStyle = '#999'; ctx.font = '10px Arial';
-      ctx.fillText(d.standing, dx - 42, dy - 12);
+      ctx.fillText(d.standing, lx, dy - 16);
     }
-    // icons: garage, safehouse, gun shop, race, police station (label to the right)
+    // icons: garage, safehouse, gun shop, race, police station. GUN SHOP's
+    // label goes on the left of its dot: on the right it piled onto the
+    // GARAGE label 20 m above it
     const icons = [
       { x: 400, y: 20, label: 'GARAGE', c: '#4ecdc4' }, { x: -240, y: 280, label: 'SAFEHOUSE', c: '#95e1d3' },
-      { x: 420, y: 60, label: 'GUN SHOP', c: '#ff6b6b' }, { x: 420, y: 400, label: 'RACE', c: '#ffe66d' },
+      { x: 420, y: 60, label: 'GUN SHOP', c: '#ff6b6b', side: 'left' }, { x: 420, y: 400, label: 'RACE', c: '#ffe66d' },
       { x: 180, y: 180, label: 'POLICE', c: '#ff3a3a' }, { x: 180, y: -260, label: 'MARINA', c: '#3fd2c0' },
     ];
     for (const ic of icons) {
       const [ix, iy] = toMap(ic.x, ic.y);
       ctx.fillStyle = ic.c;
       ctx.beginPath(); ctx.arc(ix, iy, 6, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Arial'; ctx.textAlign = 'left';
-      ctx.fillText(ic.label, ix + 10, iy + 3);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 10px Arial';
+      if (ic.side === 'left') { ctx.textAlign = 'right'; ctx.fillText(ic.label, ix - 10, iy + 3); }
+      else { ctx.textAlign = 'left'; ctx.fillText(ic.label, ix + 10, iy + 3); }
     }
     // mission marker + player
     if (target) {

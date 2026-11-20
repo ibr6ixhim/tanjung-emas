@@ -17,10 +17,17 @@ function makePoliceCarMesh() {
   bar.position.set(0, 1.55, -0.2); bar.name = 'lightbar'; g.add(bar);
   const wheelGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.3, 10);
   const wheelMat = new THREE.MeshLambertMaterial({ color: 0x141414 });
+  const wheels = [];
   for (const [x, z] of [[-0.95, 1.4], [0.95, 1.4], [-0.95, -1.4], [0.95, -1.4]]) {
+    const pivot = new THREE.Group();
+    pivot.position.set(x, 0.38, z);
     const w = new THREE.Mesh(wheelGeo, wheelMat);
-    w.rotation.z = Math.PI / 2; w.position.set(x, 0.38, z); g.add(w);
+    w.rotation.z = Math.PI / 2; w.castShadow = true;
+    pivot.add(w);
+    g.add(pivot);
+    wheels.push(pivot);
   }
+  g.userData.wheels = wheels;
   return g;
 }
 
@@ -120,7 +127,10 @@ export class Police {
       collideCircle({ x: c.x, z: c.z }, 2.2, colliders);
       c.mesh.position.set(c.x, 0, c.z);
       c.mesh.rotation.y = c.heading;
-      // flashing light bar
+      // wheels spin with road speed
+      const spin = (c.speed / 0.38) * dt;
+      for (const w of (c.mesh.userData.wheels || [])) w.rotation.x += spin;
+      // flashing light bar: red / blue, the police flash in the chase
       const bar = c.mesh.getObjectByName('lightbar');
       if (bar) bar.material.color.setHex(Math.floor(performance.now() / 300) % 2 ? 0xff2a2a : 0x2a6bff);
       this.units.push({ name: c.name, dist: Math.round(d), tactic: c.tactic });
@@ -151,6 +161,22 @@ export class Police {
     }
     if (this.wanted > 0 && this.searchTimer <= 0 && this.units.length && nearest > 90) {
       this.searchTimer = 11;
+    }
+  }
+  // staged ?shot= frame: rebuild the dispatch list from the placed units
+  // without moving anything, so the frozen chase keeps its live distances
+  updateFrozen(targetPos) {
+    this.units = [];
+    for (const c of this.cars) {
+      const d = Math.hypot(targetPos.x - c.x, targetPos.z - c.z) || 1;
+      this.units.push({ name: c.name, dist: Math.round(d), tactic: d < 18 ? 'RAMMING' : (d < 70 ? 'PURSUIT' : 'CLOSING IN') });
+    }
+    for (const r of this.roadblocks) {
+      if (!r.placed) continue;
+      this.units.push({ name: 'ROADBLOCK', dist: Math.round(Math.hypot(r.x - targetPos.x, r.z - targetPos.z)), tactic: 'ROADBLOCK' });
+    }
+    if (this.heli.active) {
+      this.units.push({ name: AIR_UNITS[0], dist: Math.round(Math.hypot(this.heli.mesh.position.x - targetPos.x, this.heli.mesh.position.z - targetPos.z)), tactic: 'SPOTLIGHT' });
     }
   }
   // stage a unit at an exact spot (used by the ?shot= staging so the cover

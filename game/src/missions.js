@@ -54,14 +54,14 @@ export class MissionRunner {
   }
   missionText() {
     const m = this.current();
-    if (!m) return { title: 'SEMUA MISI SELESAI', objective: 'Kota ini milikmu, Raka.', stage: '', next: '' };
+    if (!m) return { title: 'ALL MISSIONS COMPLETE', objective: 'This city is yours, Raka.', stage: '', next: '' };
     const s = m.stages[this.stage];
     const next = m.stages[this.stage + 1];
     return {
       title: `MISSION ${m.id}/8 — ${m.name.toUpperCase()}`,
       objective: s ? s.text : '',
       stage: `STAGE ${Math.min(this.stage + 1, m.stages.length)}/${m.stages.length}`,
-      next: next ? `NEXT: ${next.text}` : `NEXT: Selesaikan misi — hadiah $${m.pay}`,
+      next: next ? `NEXT: ${next.text}` : `NEXT: Finish the mission — reward $${m.pay}`,
     };
   }
   // called every frame: returns true when the current stage just completed
@@ -78,7 +78,7 @@ export class MissionRunner {
       return false;
     }
     if (s.type === 'steal' && state.inCar && d < 40) { this.completeStage(); return true; }
-    if (s.type === 'boat' && state.inBoat) { this.completeStage(); return true; }
+    if (s.type === 'boat' && state.inBoat && d < 12) { this.completeStage(); return true; }
     if (s.type === 'deliver' && (state.inCar || state.inBoat) && d < 12) { this.completeStage(); return true; }
     if (s.type !== 'deliver' && s.type !== 'steal' && s.type !== 'boat' && d < 12) { this.completeStage(); return true; }
     return false;
@@ -93,10 +93,12 @@ export class MissionRunner {
   completeMission() {
     const m = this.current();
     this.completed.add(m.id);
-    this.hooks.onMissionComplete(m);
+    // advance first: the completion hook autosaves, and the save must record
+    // the NEXT mission as current, not the one just finished
     this.index++;
     this.active = false;
     this.beacon.visible = false; this.ring.visible = false;
+    this.hooks.onMissionComplete(m);
     if (this.index < MISSIONS.length) {
       setTimeout(() => this.start(), 1500);
     }
