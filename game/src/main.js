@@ -474,13 +474,15 @@ export class Game {
     const focus = this.inCar ? this.car.pos : (this.inBoat ? this.boats.playerBoat.mesh.position : this.playerPos);
     const heading = this.inCar ? this.car.heading : (this.inBoat ? this.boats.playerBoat.heading : this.camYaw);
     const dist = this.inCar ? 13 : (this.inBoat ? 12 : 8.5);
-    const height = this.inCar ? 5.5 : (this.inBoat ? 5 : 3.8);
+    const height = this.inCar ? 5.5 : (this.inBoat ? 5 : 2.6);
     this.camera.position.set(
       focus.x - Math.sin(heading) * dist,
-      focus.y + height + Math.sin(this.camPitch) * 4,
+      focus.y + height + Math.sin(this.camPitch) * 2,
       focus.z - Math.cos(heading) * dist,
     );
-    this.camera.lookAt(focus.x + Math.sin(heading) * 6, focus.y + 1.5, focus.z + Math.cos(heading) * 6);
+    // aim the crosshair at a far point so the camera sits nearly level:
+    // a near aim point pitches the view down and the shot ray into the ground
+    this.camera.lookAt(focus.x + Math.sin(heading) * 30, focus.y + 1.5, focus.z + Math.cos(heading) * 30);
   }
 
   onResize() {
@@ -669,14 +671,14 @@ export class Game {
     const focus = this.inCar ? this.car.pos : (this.inBoat ? this.boats.playerBoat.mesh.position : this.playerPos);
     const heading = this.inCar ? this.car.heading : (this.inBoat ? this.boats.playerBoat.heading : this.camYaw);
     const dist = this.inCar ? 13 : (this.inBoat ? 12 : 8.5);
-    const height = this.inCar ? 5.5 : (this.inBoat ? 5 : 3.8);
+    const height = this.inCar ? 5.5 : (this.inBoat ? 5 : 2.6);
     const tx = focus.x - Math.sin(heading) * dist;
     const tz = focus.z - Math.cos(heading) * dist;
-    const ty = focus.y + height + Math.sin(this.camPitch) * 4;
+    const ty = focus.y + height + Math.sin(this.camPitch) * 2;
     this.camera.position.x += (tx - this.camera.position.x) * Math.min(1, dt * 6);
     this.camera.position.y += (ty - this.camera.position.y) * Math.min(1, dt * 6);
     this.camera.position.z += (tz - this.camera.position.z) * Math.min(1, dt * 6);
-    this.camera.lookAt(focus.x + Math.sin(heading) * 6, focus.y + 1.5, focus.z + Math.cos(heading) * 6);
+    this.camera.lookAt(focus.x + Math.sin(heading) * 30, focus.y + 1.5, focus.z + Math.cos(heading) * 30);
     this.renderer.render(this.scene, this.camera);
   }
 }

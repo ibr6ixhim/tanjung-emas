@@ -68,16 +68,24 @@ export class Combat {
     if (this.ammo[this.weaponIndex] <= 0 && w.ammo !== Infinity) return false;
     this.lastShot = now;
     if (w.ammo !== Infinity) this.ammo[this.weaponIndex]--;
-    // ray from camera centre
-    this.raycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
-    this.raycaster.far = w.range;
+    // shoot from the player's chest toward the point the camera looks at:
+    // a ray from the high chase camera itself dives into the ground and
+    // passes over enemies' heads at combat range, so it can never hit
+    const fwd = new THREE.Vector3();
+    this.camera.getWorldDirection(fwd);
+    fwd.y = 0; fwd.normalize();
+    const origin = new THREE.Vector3(playerPos.x, playerPos.y + 1.4, playerPos.z);
+    const aim = origin.clone().add(fwd.clone().multiplyScalar(30));
+    aim.y = playerPos.y + 1.5;
+    this.raycaster.set(origin, aim.clone().sub(origin).normalize());
+    this.raycaster.far = w.range + 10;
     const targets = this.enemies.filter(e => !e.dead).map(e => e.mesh);
     const hits = this.raycaster.intersectObjects(targets, true);
-    // muzzle flash + tracer
-    this.flash.position.copy(this.camera.position).add(new THREE.Vector3(0, -0.3, 0));
+    // muzzle flash + tracer (from the player's chest, where the shot starts)
+    this.flash.position.copy(origin).add(new THREE.Vector3(0, 0.2, 0));
     this.flash.intensity = 3;
     const end = hits.length ? hits[0].point : this.raycaster.ray.at(w.range, new THREE.Vector3());
-    const start = this.camera.position.clone();
+    const start = origin.clone();
     const geo = new THREE.BufferGeometry().setFromPoints([start, end]);
     const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xffe9a8, transparent: true, opacity: 0.9 }));
     this.scene.add(line);
