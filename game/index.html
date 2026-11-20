@@ -23,13 +23,13 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #0f0b14; f
   backdrop-filter: blur(8px);
   box-shadow: 0 4px 20px rgba(0,0,0,0.45);
 }
-
 #mission-panel { top: 16px; left: 16px; width: 330px; border-left: 7px solid #ffd34f; background: rgba(18, 12, 30, 0.92); }
 #mission-title { font-size: 17px; font-weight: 800; color: #ffd34f; letter-spacing: 0.4px; }
 #mission-objective { font-size: 15px; margin-top: 6px; line-height: 1.4; font-weight: 650; }
 #mission-stage { font-size: 13px; color: #9ad8ff; margin-top: 6px; font-weight: 700; }
 #mission-next { font-size: 12px; color: #aaa; margin-top: 3px; }
 #objective-dist { display: inline-block; margin-top: 8px; padding: 4px 10px; font-size: 13.5px; font-weight: 800; color: #1a1024; background: #ffd34f; border-radius: 5px; }
+
 #stats-panel { top: 16px; right: 16px; text-align: right; min-width: 230px; background: rgba(18, 12, 30, 0.92); }
 #money { font-size: 34px; font-weight: 800; color: #7dff8a; text-shadow: 0 0 14px rgba(125, 255, 138, 0.5); letter-spacing: -0.5px; }
 #stars { font-size: 28px; letter-spacing: 5px; color: #ffd34f; margin: 4px 0 2px; }
@@ -113,29 +113,33 @@ html, body { width: 100%; height: 100%; overflow: hidden; background: #0f0b14; f
 .g-name { font-weight: 700; color: #ffd34f; width: 145px; }
 .g-desc { flex: 1; color: #bbb; }
 
-/* --- DOM reconciliation (minimal): the user's CSS above styles these, but
-   the markup/JS needs them positioned — without position:absolute these
-   elements would stack in normal flow at the top of #hud. --- */
+/* reconciliation (my own audit, v5): the user CSS above positions these ids by
+   coordinates but leaves them in normal flow inside #hud, which would stack
+   them at the top-left; and a few rules the v3 markup/JS needs are not defined
+   in the user CSS. User CSS above is untouched. */
 #minimap-wrap, #weapons, #crew, #dialog, #radio-ticker, #prompt, #message { position: absolute; }
-/* measured at 1280x800: the centred weapons bar (635px wide) starts at x=323
-   and overlaps the mission panel (ends x=346) by 23px; shift it right 32px
-   so it clears the panel (starts x=355) without touching the stats panel. */
-#weapons { left: calc(50% + 32px); }
 #dialog-text { flex: 1; min-width: 0; }
 #pause .side-col { flex: 1; }
 #mission-list li { white-space: nowrap; }
-.weapon-slot { white-space: nowrap; } /* with the +32px shift the bar's shrink-to-fit width (608px) is below its 635px content, so slots wrapped to two lines; keep them single-line */
 .overlay-box button:disabled { opacity: 0.4; cursor: default; }
 .garage-row button { margin: 0; padding: 6px 14px; font-size: 13px; }
-/* pause overlay: measured at 1280x800 the side column is 81px taller than the
-   94vh box, cutting off the Save / Title Screen buttons — tighten spacing and
-   button size only inside #pause so everything fits without scrolling. */
-#pause .overlay-box { padding: 18px 22px; gap: 18px; }
-#pause .overlay-box h2 { margin-bottom: 8px; }
+.tactic.searching { color: #9ad8ff; }
+
+/* v5 geometry fixes (measured by me in Playwright at 1280x800):
+   - weapons bar overlapped the mission panel by 23px; shifting via transform
+     (not left) keeps the bar's shrink-to-fit width at 635px.
+   - dispatch box (5 rows) overlapped vitals by 15px; raised 25px.
+   - pause overlay overflowed by 81px, cutting Save/Title buttons; compacted
+     pause-only spacing so all three buttons fit. */
+#weapons { transform: translateX(calc(-50% + 32px)); }
+.weapon-slot { white-space: nowrap; }
+#dispatch-box { top: 235px; }
+#pause .overlay-box { padding: 18px 22px; }
 #pause #mission-list { line-height: 1.6; }
-#pause #career-stats { line-height: 1.55; }
+#pause #career-stats { line-height: 1.6; }
+#pause .overlay-box h2 { margin-bottom: 8px; }
+#pause .overlay-box button { padding: 9px 20px; }
 #pause .save-slot { padding: 7px 10px; margin-top: 6px; }
-#pause .overlay-box button { padding: 8px 14px; font-size: 14px; }
 </style>
 </head>
 <body>
