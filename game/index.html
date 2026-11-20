@@ -6,102 +6,136 @@
 <link rel="icon" href="data:,">
 <title>Tanjung Emas — Open-World Crime</title>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1024; font-family: Arial, Helvetica, sans-serif; color: #fff; }
-  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; filter: saturate(1.15) contrast(1.05); }
-  /* warm vignette over the 3D view (below the HUD panels) */
-  #vignette { position: fixed; inset: 0; z-index: 5; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(10, 4, 20, 0.35) 100%); }
-  .hidden { display: none !important; }
-  #fatal { position: fixed; top: 10px; left: 10px; z-index: 99; background: #a00; padding: 10px 14px; border-radius: 6px; font-size: 14px; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #0f0b14; font-family: 'Segoe UI', system-ui, Arial, sans-serif; color: #fff; }
+#game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; filter: saturate(1.12) contrast(1.04); }
+#vignette { position: fixed; inset: 0; z-index: 5; pointer-events: none; background: radial-gradient(ellipse at center, transparent 50%, rgba(8,4,16,0.45) 100%); }
+.hidden { display: none !important; }
+#fatal { position: fixed; top: 12px; left: 12px; z-index: 99; background: #c33; padding: 12px 16px; border-radius: 8px; font-size: 14px; }
 
-  /* ---------- HUD ---------- */
-  #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
-  .panel { position: absolute; background: rgba(8, 6, 16, 0.72); border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 8px; padding: 10px 12px; backdrop-filter: blur(2px); }
-  #mission-panel { top: 14px; left: 14px; width: 300px; border-left: 4px solid #ffd34f; }
-  #mission-title { font-size: 15px; font-weight: bold; color: #ffd34f; letter-spacing: 0.5px; }
-  #mission-objective { font-size: 13px; margin-top: 4px; line-height: 1.35; }
-  #mission-stage { font-size: 12px; color: #9ad8ff; margin-top: 5px; }
-  #mission-next { font-size: 11px; color: #aaa; margin-top: 2px; }
-  #objective-dist { display: inline-block; margin-top: 5px; font-size: 13px; font-weight: bold; color: #ffd34f; }
-  #stats-panel { top: 14px; right: 14px; text-align: right; min-width: 210px; }
-  #money { font-size: 26px; font-weight: bold; color: #7dff8a; }
-  #stars { font-size: 22px; letter-spacing: 3px; color: #ffd34f; }
-  #stars.wanted-hot { color: #ff3a3a; text-shadow: 0 0 8px #ff3a3a; }
-  #clock { font-size: 14px; color: #ddd; }
-  #police-status { font-size: 12px; font-weight: bold; color: #ff9a9a; }
-  #vitals { position: absolute; left: 14px; bottom: 218px; width: 220px; }
-  .bar-row { display: flex; align-items: center; gap: 6px; margin-top: 5px; font-size: 11px; font-weight: bold; }
-  .bar { flex: 1; height: 10px; background: rgba(255,255,255,0.15); border-radius: 5px; overflow: hidden; }
-  .bar > div { height: 100%; }
-  #health-fill { background: #4ade80; width: 100%; }
-  #armour-fill { background: #60a5fa; width: 0%; }
-  #district { font-size: 14px; font-weight: bold; margin-top: 6px; }
-  #street { font-size: 12px; color: #bbb; }
-  #respect { font-size: 11px; color: #ffd34f; margin-top: 3px; }
-  #minimap-wrap { position: absolute; left: 14px; bottom: 14px; }
-  #minimap { border-radius: 50%; border: 3px solid rgba(255,255,255,0.4); background: #12101c; }
-  #speedo { position: absolute; right: 14px; bottom: 14px; text-align: right; min-width: 190px; }
-  #speed { font-size: 44px; font-weight: bold; line-height: 1; }
-  #speed-unit { font-size: 13px; color: #bbb; }
-  #car-name { font-size: 14px; font-weight: bold; color: #ffd34f; }
-  #car-condition { font-size: 11px; color: #bbb; }
-  #nitro-bar { height: 8px; background: rgba(255,255,255,0.15); border-radius: 4px; overflow: hidden; margin-top: 5px; }
-  #nitro-fill { height: 100%; background: #ff9a3c; width: 100%; }
-  #weapons { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 4px; }
-  .weapon-slot { background: rgba(8,6,16,0.72); border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; padding: 4px 6px; font-size: 10px; font-weight: bold; color: #ccc; }
-  .weapon-slot.active { border-color: #ffd34f; color: #ffd34f; }
-  .weapon-slot.locked { opacity: 0.45; }
-  #dispatch-box { position: absolute; left: 14px; top: 240px; width: 250px; }
-  #dispatch-box h3 { font-size: 11px; color: #ff9a9a; letter-spacing: 1px; margin-bottom: 5px; }
-  .dispatch-row { display: flex; gap: 8px; font-size: 12px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
-  .dispatch-row .unit { font-weight: bold; color: #fff; }
-  .dispatch-row .dist { color: #9ad8ff; margin-left: auto; }
-  .dispatch-row .tactic { font-weight: bold; }
-  .tactic.pursuit { color: #ffd34f; } .tactic.ramming { color: #ff6b6b; } .tactic.roadblock { color: #ff9a3c; }
-  .tactic.spotlight { color: #fff2b0; } .tactic.searching { color: #9ad8ff; }
-  #crew { position: absolute; right: 14px; top: 190px; display: flex; flex-direction: column; gap: 5px; }
-  .crew-chip { background: rgba(8,6,16,0.72); border: 1px solid rgba(255,255,255,0.2); border-radius: 5px; padding: 5px 9px; font-size: 11px; font-weight: bold; color: #ccc; text-align: right; }
-  .crew-chip.active { border-color: #7dff8a; color: #7dff8a; }
-  #dialog { position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); width: 520px; background: rgba(8,6,16,0.85); border: 1px solid rgba(255,211,79,0.5); border-radius: 8px; padding: 10px 14px; display: flex; gap: 12px; align-items: center; }
-  #dialog-portrait { border-radius: 50%; background: #2a2438; flex: 0 0 64px; }
-  #dialog-text { flex: 1; min-width: 0; }
-  #dialog-name { font-size: 12px; font-weight: bold; color: #ffd34f; }
-  #dialog-line { font-size: 14px; margin-top: 3px; line-height: 1.4; }
-  #radio-ticker { position: absolute; top: 64px; left: 50%; transform: translateX(-50%); font-size: 12px; color: #ffd9ec; background: rgba(8,6,16,0.6); padding: 5px 12px; border-radius: 12px; }
-  #prompt { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%); font-size: 16px; font-weight: bold; background: rgba(8,6,16,0.8); border: 1px solid #ffd34f; color: #ffd34f; padding: 8px 16px; border-radius: 6px; }
-  #message { position: absolute; left: 50%; top: 110px; transform: translateX(-50%); font-size: 18px; font-weight: bold; color: #7dff8a; text-shadow: 0 2px 6px #000; background: rgba(8,6,16,0.7); padding: 8px 18px; border-radius: 8px; }
-  #crosshair { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; transform: translate(-50%, -50%); pointer-events: none; }
-  #crosshair::before, #crosshair::after { content: ''; position: absolute; background: #fff; }
-  #crosshair::before { left: 10px; top: 0; width: 2px; height: 22px; }
-  #crosshair::after { top: 10px; left: 0; height: 2px; width: 22px; }
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+.panel {
+  position: absolute;
+  background: rgba(14, 10, 22, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 12px 14px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.45);
+}
 
-  /* ---------- Overlays ---------- */
-  .overlay { position: fixed; inset: 0; z-index: 20; background: rgba(5, 3, 12, 0.82); display: flex; align-items: center; justify-content: center; }
-  #title { background: rgba(5, 3, 12, 0.55); } /* lighter so the sunset skyline shows through behind the panel */
-  .overlay-box { background: #14111d; border: 1px solid rgba(255,211,79,0.4); border-radius: 12px; padding: 20px 24px; max-width: 860px; max-height: 94vh; overflow-y: auto; }
-  .overlay-box h1 { font-size: 40px; color: #ffd34f; letter-spacing: 2px; }
-  .overlay-box h2 { font-size: 20px; color: #ffd34f; margin-bottom: 12px; }
-  .overlay-box p { font-size: 14px; color: #ccc; line-height: 1.5; margin-top: 8px; }
-  .overlay-box button { pointer-events: auto; cursor: pointer; background: #ffd34f; color: #1a1024; border: none; border-radius: 6px; padding: 10px 20px; font-size: 15px; font-weight: bold; margin: 8px 6px 0 0; }
-  .overlay-box button:disabled { opacity: 0.4; cursor: default; }
-  .overlay-box button.secondary { background: #2a2438; color: #fff; border: 1px solid rgba(255,255,255,0.3); }
-  #title .overlay-box { text-align: center; width: 640px; }
-  #title .subtitle { color: #ff9a6b; font-size: 15px; letter-spacing: 3px; margin-top: 4px; }
-  #title .footer { font-size: 12px; color: #9ad8ff; margin-top: 16px; }
-  #title .controls { font-size: 12px; color: #999; margin-top: 10px; line-height: 1.7; }
-  #pause .overlay-box { width: 780px; display: flex; gap: 20px; }
-  #pause .map-col { flex: 0 0 480px; }
-  #pause .side-col { flex: 1; }
-  #fullmap { background: #14111d; border-radius: 8px; }
-  #mission-list { list-style: none; margin-top: 6px; font-size: 12px; line-height: 1.8; }
-  #mission-list li { white-space: nowrap; }
-  .mission-done { color: #7dff8a; } .mission-next { color: #ffd34f; font-weight: bold; } .mission-locked { color: #777; }
-  #career-stats { font-size: 12px; color: #ccc; line-height: 1.7; margin-top: 8px; }
-  .save-slot { background: #1e1930; border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 7px 10px; font-size: 12px; margin-top: 6px; }
-  .garage-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 13px; }
-  .g-name { font-weight: bold; color: #ffd34f; width: 130px; }
-  .g-desc { flex: 1; color: #bbb; }
-  .garage-row button { margin: 0; padding: 6px 14px; font-size: 13px; }
+#mission-panel { top: 16px; left: 16px; width: 330px; border-left: 7px solid #ffd34f; background: rgba(18, 12, 30, 0.92); }
+#mission-title { font-size: 17px; font-weight: 800; color: #ffd34f; letter-spacing: 0.4px; }
+#mission-objective { font-size: 15px; margin-top: 6px; line-height: 1.4; font-weight: 650; }
+#mission-stage { font-size: 13px; color: #9ad8ff; margin-top: 6px; font-weight: 700; }
+#mission-next { font-size: 12px; color: #aaa; margin-top: 3px; }
+#objective-dist { display: inline-block; margin-top: 8px; padding: 4px 10px; font-size: 13.5px; font-weight: 800; color: #1a1024; background: #ffd34f; border-radius: 5px; }
+#stats-panel { top: 16px; right: 16px; text-align: right; min-width: 230px; background: rgba(18, 12, 30, 0.92); }
+#money { font-size: 34px; font-weight: 800; color: #7dff8a; text-shadow: 0 0 14px rgba(125, 255, 138, 0.5); letter-spacing: -0.5px; }
+#stars { font-size: 28px; letter-spacing: 5px; color: #ffd34f; margin: 4px 0 2px; }
+#stars.wanted-hot { color: #ff3a3a; text-shadow: 0 0 12px #ff3a3a; animation: pulse 0.75s ease-in-out infinite; }
+#clock { font-size: 14px; color: #ddd; }
+#police-status { font-size: 13px; font-weight: 700; color: #ff9a9a; margin-top: 2px; }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.75; transform: scale(1.04); } }
+
+#vitals { left: 16px; bottom: 230px; width: 240px; }
+.bar-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; font-weight: 700; }
+.bar { flex: 1; height: 13px; background: rgba(255,255,255,0.12); border-radius: 6px; overflow: hidden; }
+.bar > div { height: 100%; transition: width 0.15s; }
+#health-fill { background: linear-gradient(90deg, #4ade80, #16a34a); }
+#armour-fill { background: linear-gradient(90deg, #60a5fa, #2563eb); }
+#district { font-size: 15.5px; font-weight: 700; margin-top: 8px; }
+#street { font-size: 13px; color: #bbb; }
+#respect { font-size: 12.5px; color: #ffd34f; margin-top: 4px; font-weight: 600; }
+
+#minimap-wrap { left: 16px; bottom: 16px; }
+#minimap { border-radius: 50%; border: 5px solid rgba(255,255,255,0.65); box-shadow: 0 0 0 3px rgba(0,0,0,0.5), 0 6px 24px rgba(0,0,0,0.55); background: #0c0a14; }
+
+#speedo { right: 16px; bottom: 16px; text-align: right; min-width: 210px; background: rgba(18, 12, 30, 0.92); }
+#speed { font-size: 56px; font-weight: 800; line-height: 0.95; letter-spacing: -1px; }
+#speed-unit { font-size: 15px; color: #bbb; margin-left: 4px; }
+#car-name { font-size: 15.5px; font-weight: 700; color: #ffd34f; margin-top: 2px; }
+#car-condition { font-size: 12.5px; color: #bbb; margin-top: 2px; }
+#nitro-bar { height: 11px; background: rgba(255,255,255,0.12); border-radius: 5px; overflow: hidden; margin-top: 7px; }
+#nitro-fill { height: 100%; background: linear-gradient(90deg, #ff9a3c, #ff5500); }
+#weapons { top: 16px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; }
+.weapon-slot { background: rgba(14,10,22,0.8); border: 1px solid rgba(255,255,255,0.16); border-radius: 6px; padding: 5px 9px; font-size: 11.5px; font-weight: 700; color: #ccc; }
+.weapon-slot.active { border-color: #ffd34f; color: #ffd34f; background: rgba(255,211,79,0.15); }
+.weapon-slot.locked { opacity: 0.38; }
+
+#dispatch-box { left: 16px; top: 260px; width: 270px; background: rgba(48, 18, 18, 0.85); border-color: rgba(255, 80, 80, 0.35); }
+#dispatch-box h3 { font-size: 12.5px; color: #ff9a9a; letter-spacing: 1px; margin-bottom: 6px; font-weight: 800; }
+.dispatch-row { display: flex; gap: 8px; font-size: 13px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.07); }
+.dispatch-row .unit { font-weight: 700; }
+.dispatch-row .dist { color: #9ad8ff; margin-left: auto; }
+.dispatch-row .tactic { font-weight: 700; }
+.tactic.pursuit { color: #ffd34f; } .tactic.ramming { color: #ff6b6b; } .tactic.roadblock { color: #ff9a3c; } .tactic.spotlight { color: #fff2b0; }
+
+#crew { right: 16px; top: 210px; display: flex; flex-direction: column; gap: 6px; }
+.crew-chip { background: rgba(14,10,22,0.8); border: 1px solid rgba(255,255,255,0.16); border-radius: 6px; padding: 6px 11px; font-size: 12px; font-weight: 700; color: #ccc; text-align: right; }
+.crew-chip.active { border-color: #7dff8a; color: #7dff8a; box-shadow: 0 0 14px rgba(125,255,138,0.3); }
+
+#dialog { left: 50%; bottom: 28px; transform: translateX(-50%); width: 560px; background: rgba(12,8,20,0.92); border: 1px solid rgba(255,211,79,0.5); border-radius: 12px; padding: 14px 18px; display: flex; gap: 14px; align-items: center; }
+#dialog-portrait { border-radius: 50%; background: #2a2438; flex: 0 0 76px; }
+#dialog-name { font-size: 14px; font-weight: 800; color: #ffd34f; }
+#dialog-line { font-size: 15.5px; margin-top: 4px; line-height: 1.4; }
+
+#radio-ticker { top: 72px; left: 50%; transform: translateX(-50%); font-size: 13px; color: #ffd9ec; background: rgba(14,10,22,0.75); padding: 6px 16px; border-radius: 16px; font-weight: 600; }
+#prompt { left: 50%; bottom: 165px; transform: translateX(-50%); font-size: 18px; font-weight: 800; background: rgba(14,10,22,0.88); border: 2px solid #ffd34f; color: #ffd34f; padding: 10px 20px; border-radius: 8px; }
+#message { left: 50%; top: 125px; transform: translateX(-50%); font-size: 21px; font-weight: 800; color: #7dff8a; text-shadow: 0 2px 10px #000; background: rgba(12,8,20,0.8); padding: 10px 22px; border-radius: 10px; }
+
+#crosshair { position: absolute; left: 50%; top: 50%; width: 22px; height: 22px; transform: translate(-50%, -50%); pointer-events: none; }
+#crosshair::before, #crosshair::after { content: ''; position: absolute; background: #fff; }
+#crosshair::before { left: 10px; top: 0; width: 2px; height: 22px; }
+#crosshair::after { top: 10px; left: 0; height: 2px; width: 22px; }
+
+.overlay { position: fixed; inset: 0; z-index: 20; background: rgba(6, 3, 12, 0.86); display: flex; align-items: center; justify-content: center; }
+#title { background: rgba(6, 3, 12, 0.62); }
+.overlay-box { background: #16121f; border: 1px solid rgba(255,211,79,0.4); border-radius: 14px; padding: 26px 30px; max-width: 900px; max-height: 94vh; overflow-y: auto; box-shadow: 0 10px 50px rgba(0,0,0,0.55); }
+.overlay-box h1 { font-size: 46px; color: #ffd34f; letter-spacing: 2px; font-weight: 800; }
+.overlay-box h2 { font-size: 21px; color: #ffd34f; margin-bottom: 12px; font-weight: 700; }
+.overlay-box p { font-size: 15px; color: #ccc; line-height: 1.55; margin-top: 10px; }
+.overlay-box button { pointer-events: auto; cursor: pointer; background: #ffd34f; color: #1a1024; border: none; border-radius: 8px; padding: 12px 26px; font-size: 16px; font-weight: 700; margin: 10px 8px 0 0; transition: filter 0.15s, transform 0.1s; }
+.overlay-box button:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.overlay-box button.secondary { background: #2a2438; color: #fff; border: 1px solid rgba(255,255,255,0.28); }
+#title .overlay-box { text-align: center; width: 680px; }
+#title .subtitle { color: #ff9a6b; font-size: 16.5px; letter-spacing: 3px; margin-top: 6px; font-weight: 600; }
+#title .footer { font-size: 13.5px; color: #9ad8ff; margin-top: 18px; }
+#title .controls { font-size: 13px; color: #999; margin-top: 12px; line-height: 1.75; }
+#pause .overlay-box { width: 820px; display: flex; gap: 24px; }
+#pause .map-col { flex: 0 0 510px; }
+#fullmap { background: #14111d; border-radius: 10px; }
+#mission-list { list-style: none; margin-top: 8px; font-size: 13.5px; line-height: 1.9; }
+.mission-done { color: #7dff8a; } .mission-next { color: #ffd34f; font-weight: 700; } .mission-locked { color: #777; }
+#career-stats { font-size: 13.5px; color: #ccc; line-height: 1.8; margin-top: 10px; }
+.save-slot { background: #1e1930; border: 1px solid rgba(255,255,255,0.14); border-radius: 8px; padding: 9px 12px; font-size: 13.5px; margin-top: 8px; }
+.garage-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 14px; }
+.g-name { font-weight: 700; color: #ffd34f; width: 145px; }
+.g-desc { flex: 1; color: #bbb; }
+
+/* --- DOM reconciliation (minimal): the user's CSS above styles these, but
+   the markup/JS needs them positioned — without position:absolute these
+   elements would stack in normal flow at the top of #hud. --- */
+#minimap-wrap, #weapons, #crew, #dialog, #radio-ticker, #prompt, #message { position: absolute; }
+/* measured at 1280x800: the centred weapons bar (635px wide) starts at x=323
+   and overlaps the mission panel (ends x=346) by 23px; shift it right 32px
+   so it clears the panel (starts x=355) without touching the stats panel. */
+#weapons { left: calc(50% + 32px); }
+#dialog-text { flex: 1; min-width: 0; }
+#pause .side-col { flex: 1; }
+#mission-list li { white-space: nowrap; }
+.weapon-slot { white-space: nowrap; } /* with the +32px shift the bar's shrink-to-fit width (608px) is below its 635px content, so slots wrapped to two lines; keep them single-line */
+.overlay-box button:disabled { opacity: 0.4; cursor: default; }
+.garage-row button { margin: 0; padding: 6px 14px; font-size: 13px; }
+/* pause overlay: measured at 1280x800 the side column is 81px taller than the
+   94vh box, cutting off the Save / Title Screen buttons — tighten spacing and
+   button size only inside #pause so everything fits without scrolling. */
+#pause .overlay-box { padding: 18px 22px; gap: 18px; }
+#pause .overlay-box h2 { margin-bottom: 8px; }
+#pause #mission-list { line-height: 1.6; }
+#pause #career-stats { line-height: 1.55; }
+#pause .save-slot { padding: 7px 10px; margin-top: 6px; }
+#pause .overlay-box button { padding: 8px 14px; font-size: 14px; }
 </style>
 </head>
 <body>

@@ -134,7 +134,7 @@ export class Traffic {
     this.rng = makeRng(seed);
     this.cars = [];
     const group = new THREE.Group(); group.name = 'traffic'; scene.add(group);
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 55; i++) {
       const model = this.rng.pick(CAR_MODELS);
       const mesh = makeCarMesh(model, this.rng);
       group.add(mesh);

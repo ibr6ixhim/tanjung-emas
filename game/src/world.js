@@ -150,7 +150,7 @@ export function buildWorld(scene, seed) {
   for (let bx = -450; bx <= 450; bx += CITY.block) {
     for (let bz = -450; bz <= 450; bz += CITY.block) {
       if (bx < -250) continue; // beach side stays open
-      if (rng.chance(0.12)) continue; // plaza / parking gap
+      if (rng.chance(0.04)) continue; // plaza / parking gap
       const w = rng.range(34, 52), d = rng.range(34, 52);
       const h = bz > 100 && bx > 100 ? rng.range(45, 110) : rng.range(14, 48); // downtown towers
       const color = rng.pick(BUILDING_COLORS);
